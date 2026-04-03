@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const muxSignature = headersList.get('mux-signature')
     const muxTimestamp = headersList.get('mux-timestamp')
 

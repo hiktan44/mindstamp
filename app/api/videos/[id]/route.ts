@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -13,8 +13,9 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const video = await prisma.video.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         interactions: {
           orderBy: { startTime: 'asc' },
@@ -34,7 +35,6 @@ export async function GET(
 
     // Erişim kontrolü
     if (video.userId !== session.user.id) {
-      // Organizasyon üyeliği kontrolü yapılabilir
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -50,7 +50,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -60,10 +60,11 @@ export async function PATCH(
     }
 
     const data = await req.json()
+    const { id } = await params
 
     // Videoyu kontrol et
     const existingVideo = await prisma.video.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingVideo) {
@@ -77,7 +78,7 @@ export async function PATCH(
 
     // Videoyu güncelle
     const video = await prisma.video.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...data,
         updatedAt: new Date(),
@@ -100,7 +101,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -109,9 +110,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Videoyu kontrol et
     const existingVideo = await prisma.video.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!existingVideo) {
@@ -125,7 +128,7 @@ export async function DELETE(
 
     // Videoyu sil (cascade delete ile ilişkiler de silinir)
     await prisma.video.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // TODO: S3/R2'den dosyaları sil

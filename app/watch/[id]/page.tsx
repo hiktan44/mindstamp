@@ -66,7 +66,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
             <p className="text-muted-foreground mb-6">
               Bu videoyu görüntülemek için yetkiniz yok veya video henüz yayınlanmamış.
             </p>
-            <Button asChild>
+            <Button>
               <a href="/">Ana Sayfaya Dön</a>
             </Button>
           </CardContent>
@@ -90,7 +90,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
             <span className="font-semibold">Mindstamp</span>
           </div>
 
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm">
             <a href="/giris">Giriş Yap</a>
           </Button>
         </div>
@@ -234,7 +234,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
                 <p className="text-sm text-muted-foreground mb-4">
                   Videolarınıza etkileşimli öğeler ekleyin
                 </p>
-                <Button asChild className="w-full">
+                <Button className="w-full">
                   <a href="/kayit">Ücretsiz Dene</a>
                 </Button>
               </CardContent>

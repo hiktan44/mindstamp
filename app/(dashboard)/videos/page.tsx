@@ -38,7 +38,7 @@ export default function VideosPage() {
             Videolarınızı yönetin ve düzenleyin
           </p>
         </div>
-        <Button asChild>
+        <Button>
           <Link href="/dashboard/videos/new">
             <Plus className="mr-2 h-4 w-4" />
             Yeni Video
@@ -130,7 +130,7 @@ export default function VideosPage() {
                 İlk interaktif videonuzu oluşturmak için aşağıdaki butona tıklayın
               </p>
             </div>
-            <Button asChild size="lg">
+            <Button size="lg">
               <Link href="/dashboard/videos/new">
                 <Plus className="mr-2 h-5 w-5" />
                 İlk Videoyu Oluştur

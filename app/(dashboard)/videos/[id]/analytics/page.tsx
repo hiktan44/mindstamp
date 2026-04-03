@@ -102,7 +102,7 @@ export default function VideoAnalyticsPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon">
             <Link href={`/dashboard/videos/${params.id}/edit`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -114,7 +114,10 @@ export default function VideoAnalyticsPage({
         </div>
 
         <div className="flex items-center gap-2">
-          <Select value={dateRange} onValueChange={setDateRange}>
+          <Select
+            value={dateRange}
+            onValueChange={(value) => setDateRange(value || '30d')}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
@@ -304,7 +307,7 @@ export default function VideoAnalyticsPage({
                   <Button
                     variant="outline"
                     className="mt-4"
-                    asChild
+                   
                   >
                     <Link href={`/dashboard/videos/${params.id}/edit`}>
                       İlk Etkileşimi Ekle

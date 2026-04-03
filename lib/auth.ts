@@ -7,7 +7,7 @@ import { prisma } from './db'
 import bcrypt from 'bcryptjs'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -23,13 +23,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: 'E-posta', type: 'email' },
         password: { label: 'Şifre', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('E-posta ve şifre gereklidir')
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email as string },
         })
 
         if (!user || !user.password) {
@@ -76,10 +76,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token && session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = token.role as any
       }
       return session
     },

@@ -91,7 +91,7 @@ export default function VideoEditPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon">
             <Link href="/dashboard/videos">
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -119,7 +119,7 @@ export default function VideoEditPage({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
+          <Button variant="outline">
             <Link href={`/watch/${video.id}`}>
               <Eye className="mr-2 h-4 w-4" />
               Önizle
@@ -133,7 +133,11 @@ export default function VideoEditPage({
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value || 'editor')}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="editor">
             <LayoutIcon className="mr-2 h-4 w-4" />

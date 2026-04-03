@@ -94,10 +94,12 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Button asChild variant={action.variant} className="w-full">
-                <Link href={action.href}>
-                  {action.title === 'Yeni Video Oluştur' ? 'Başla' : 'Görüntüle'}
-                </Link>
+              <Button
+                variant={action.variant}
+                className="w-full"
+                onClick={() => window.location.href = action.href}
+              >
+                {action.title === 'Yeni Video Oluştur' ? 'Başla' : 'Görüntüle'}
               </Button>
             </CardContent>
           </Card>

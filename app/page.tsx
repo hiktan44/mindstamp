@@ -60,14 +60,21 @@ export default function Home() {
               dinamik, ölçülebilir ve kişiselleştirilmiş deneyimler oluşturun.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button asChild size="lg" className="min-w-[160px]">
-                <Link href="/kayit">
-                  Ücretsiz Başla
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button
+                size="lg"
+                className="min-w-[160px]"
+                onClick={() => window.location.href = '/kayit'}
+              >
+                Ücretsiz Başla
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button asChild variant="outline" size="lg" className="min-w-[160px]">
-                <Link href="/giris">Giriş Yap</Link>
+              <Button
+                variant="outline"
+                size="lg"
+                className="min-w-[160px]"
+                onClick={() => window.location.href = '/giris'}
+              >
+                Giriş Yap
               </Button>
             </div>
           </div>
@@ -147,11 +154,13 @@ export default function Home() {
               <p className="mt-4 text-muted-foreground">
                 Ücretsiz deneme ile platformu keşfedin. Kredi kartı gerekmez.
               </p>
-              <Button asChild size="lg" className="mt-8">
-                <Link href="/kayit">
-                  Ücretsiz Dene
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button
+                size="lg"
+                className="mt-8"
+                onClick={() => window.location.href = '/kayit'}
+              >
+                Ücretsiz Dene
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>

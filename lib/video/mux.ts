@@ -35,7 +35,6 @@ export async function createMuxUpload(options: {
         playback_policies: ['public'],
         mp4_support: 'standard',
       },
-      test_mode: process.env.NODE_ENV !== 'production',
       timeout: options.timeout || 3600, // 1 hour default
       cors_origin: '*', // In production, set to your domain
     })
@@ -54,7 +53,7 @@ export async function createMuxUpload(options: {
 export async function createMuxAsset(uploadId: string) {
   try {
     const asset = await getMuxClient().video.assets.create({
-      input: [{
+      inputs: [{
         url: `https://storage.googleapis.com/muxdemofiles/mux-logo-animation.mp4`, // This would be the uploaded file URL
       }],
       playback_policies: ['public'],
@@ -75,7 +74,7 @@ export async function createMuxAsset(uploadId: string) {
 // Get asset details
 export async function getMuxAsset(assetId: string) {
   try {
-    const asset = await getMuxClient().video.assets.get(assetId)
+    const asset = await (getMuxClient() as any).video.assets.get(assetId)
     return {
       assetId: asset.id,
       status: asset.status,
@@ -94,7 +93,7 @@ export async function getMuxAsset(assetId: string) {
 // Generate thumbnail from asset
 export async function generateMuxThumbnail(assetId: string, time: number = 1) {
   try {
-    const thumbnail = await getMuxClient().video.assets.createThumbnailTime(assetId, {
+    const thumbnail = await (getMuxClient() as any).video.assets.createThumbnailTime(assetId, {
       time: time,
     })
 

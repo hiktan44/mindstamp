@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { VideoPlayer } from '@/components/player/video-player'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -247,7 +247,7 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
           <CardContent className="space-y-4">
             {/* Add New Interaction */}
             <Dialog>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button className="w-full">
                   <Plus className="mr-2 h-4 w-4" />
                   Etkileşim Ekle
@@ -308,7 +308,7 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                       <div className="flex items-center gap-2">
                         {interactionTypes.find((t) => t.type === interaction.type)?.icon && (
                           React.createElement(
-                            interactionTypes.find((t) => t.type === interaction.type)!.icon,
+                            interactionTypes.find((t) => t.type === interaction.type)?.icon!,
                             { className: 'h-4 w-4 shrink-0' }
                           )
                         )}
@@ -487,7 +487,7 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
           </Button>
 
           <Dialog>
-            <DialogTrigger asChild>
+            <DialogTrigger>
               <Button variant="outline">
                 <Eye className="mr-2 h-4 w-4" />
                 Önizle

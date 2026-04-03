@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { createMuxUpload, getMuxPlaybackUrl } from '@/lib/video/mux'
+import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
 
 export async function POST(req: NextRequest) {

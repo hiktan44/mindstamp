@@ -112,7 +112,7 @@ export default function VideoSharePage({
             &quot;{video.title}&quot; videosunu paylaşın
           </p>
         </div>
-        <Button variant="outline" asChild>
+        <Button variant="outline">
           <Link href={`/dashboard/videos/${params.id}/edit`}>
             Düzenlemeye Dön
           </Link>

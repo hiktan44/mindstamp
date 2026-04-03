@@ -81,14 +81,12 @@ export default function DashboardLayout({
                     return (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
-                          asChild
                           isActive={isActive}
                           tooltip={item.name}
+                          onClick={() => window.location.href = item.href}
                         >
-                          <Link href={item.href}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.name}</span>
-                          </Link>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     )
@@ -102,7 +100,7 @@ export default function DashboardLayout({
             <SidebarMenu>
               <SidebarMenuItem>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger>
                     <SidebarMenuButton
                       size="lg"
                       className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
@@ -148,11 +146,9 @@ export default function DashboardLayout({
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/settings">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Ayarlar
-                      </Link>
+                    <DropdownMenuItem onClick={() => window.location.href = '/dashboard/settings'}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Ayarlar
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>

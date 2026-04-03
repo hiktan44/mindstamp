@@ -69,11 +69,11 @@ export function VideoPlayer({
   }, [isPlaying, onPlay, onPause])
 
   // Volume control
-  const handleVolumeChange = useCallback((value: number[]) => {
+  const handleVolumeChange = useCallback((value: number | readonly number[]) => {
     const video = videoRef.current
     if (!video) return
 
-    const newVolume = value[0]
+    const newVolume = Array.isArray(value) ? value[0] : value
     video.volume = newVolume
     setVolume(newVolume)
     setIsMuted(newVolume === 0)
@@ -94,12 +94,13 @@ export function VideoPlayer({
   }, [isMuted, volume])
 
   // Seek
-  const handleSeek = useCallback((value: number[]) => {
+  const handleSeek = useCallback((value: number | readonly number[]) => {
     const video = videoRef.current
     if (!video) return
 
-    video.currentTime = value[0]
-    setCurrentTime(value[0])
+    const newTime = Array.isArray(value) ? value[0] : value
+    video.currentTime = newTime
+    setCurrentTime(newTime)
   }, [])
 
   // Toggle fullscreen
