@@ -14,6 +14,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Hls from 'hls.js'
 
 interface VideoPlayerProps {
   src: string
@@ -52,6 +53,37 @@ export function VideoPlayer({
     const seconds = Math.floor(time % 60)
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
+
+  // Initialize HLS if needed
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !src) return
+
+    let hls: Hls | null = null
+
+    if (src.endsWith('.m3u8')) {
+      if (Hls.isSupported()) {
+        hls = new Hls()
+        hls.loadSource(src)
+        hls.attachMedia(video)
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // Ready to play if needed
+        })
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Fallback for native Safari HLS
+        video.src = src
+      }
+    } else {
+        // Standard video formats like .mp4
+        video.src = src
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy()
+      }
+    }
+  }, [src])
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
@@ -228,7 +260,6 @@ export function VideoPlayer({
       {/* Video Element */}
       <video
         ref={videoRef}
-        src={src}
         poster={poster}
         className="w-full h-full"
         onTimeUpdate={(e) => {
