@@ -4,6 +4,12 @@ import { prisma } from '@/lib/db'
 import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
