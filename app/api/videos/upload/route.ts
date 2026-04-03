@@ -4,11 +4,11 @@ import { prisma } from '@/lib/db'
 import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
 
-export const POST = auth(async (req: any) => {
+export async function POST(req: NextRequest) {
   try {
-    const session = req.auth
+    const session = await auth()
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -78,14 +78,14 @@ export const POST = auth(async (req: any) => {
       video,
       processingStarted: true,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Video upload error:', error)
     return NextResponse.json(
-      { error: 'Video yüklenirken bir hata oluştu' },
+      { error: 'Video yüklenirken bir hata oluştu: ' + (error.message || 'Unknown error') },
       { status: 500 }
     )
   }
-})
+}
 
 // Async video processing
 async function processVideoAsync(
