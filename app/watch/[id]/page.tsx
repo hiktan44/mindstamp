@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Share2, Eye, Clock, Lock } from 'lucide-react'
+import { prisma } from '@/lib/db'
+import { auth } from '@/lib/auth'
 
 interface WatchPageProps {
   params: {
@@ -13,13 +15,20 @@ interface WatchPageProps {
 
 async function getVideo(id: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/videos/${id}`, {
-      cache: 'no-store',
+    const video = await prisma.video.findUnique({
+      where: { id },
+      include: {
+        interactions: {
+          orderBy: { startTime: 'asc' },
+        },
+        chapters: {
+          orderBy: { startTime: 'asc' },
+        },
+        captions: true,
+        transcripts: true,
+        endScreens: true,
+      },
     })
-
-    if (!response.ok) return null
-
-    const { video } = await response.json()
     return video
   } catch (error) {
     return null
@@ -55,8 +64,11 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
     notFound()
   }
 
-  // Check if video is published
-  if (video.status !== 'PUBLISHED') {
+  // Check if video is published or user is owner
+  const session = await auth()
+  const isOwner = session?.user?.id === video.userId
+
+  if (video.status !== 'PUBLISHED' && !isOwner) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Card className="max-w-md">
