@@ -20,10 +20,10 @@ interface Interaction {
 interface InteractivePlayerProps {
   video: {
     id: string
-    hlsUrl?: string
-    videoUrl?: string
-    thumbnailUrl?: string
-    interactions?: Interaction[]
+    hlsUrl?: string | null
+    videoUrl?: string | null
+    thumbnailUrl?: string | null
+    interactions?: Interaction[] | null
     settings?: any
   }
 }
