@@ -44,7 +44,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl ffmpeg
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -59,8 +59,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./node_modules/.prisma
 
-# Create directories for uploads
+# Create directories for uploads and temp processing
 RUN mkdir -p /app/public/uploads && chown nextjs:nodejs /app/public/uploads
+RUN mkdir -p /app/tmp/videos && chown -R nextjs:nodejs /app/tmp
 
 # Set environment
 ENV NODE_ENV=production
