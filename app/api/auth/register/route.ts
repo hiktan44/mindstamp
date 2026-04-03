@@ -36,13 +36,17 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // Make the first user the SUPER_ADMIN
+    const userCount = await prisma.user.count()
+    const role = userCount === 0 ? 'SUPER_ADMIN' : 'USER'
+
     // Create user
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: 'USER',
+        role,
       },
     })
 
