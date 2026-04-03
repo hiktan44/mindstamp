@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { VideoPlayer } from '@/components/player/video-player'
+import { InteractivePlayer } from '@/components/player/interactive-player'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -103,11 +103,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
           <div className="lg:col-span-2 space-y-4">
             {/* Player */}
             <div className="overflow-hidden rounded-xl bg-black shadow-lg">
-              <VideoPlayer
-                src={video.hlsUrl || video.videoUrl || ''}
-                poster={video.thumbnailUrl}
-                className="aspect-video"
-              />
+              <InteractivePlayer video={video} />
             </div>
 
             {/* Video Info */}

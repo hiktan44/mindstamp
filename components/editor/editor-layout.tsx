@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { VideoPlayer } from '@/components/player/video-player'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -103,6 +103,48 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Drag logic
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dragInfo, setDragInfo] = useState<{ id: string, startX: number, startY: number, startPosX: number, startPosY: number } | null>(null)
+
+  useEffect(() => {
+    if (!dragInfo) return;
+    
+    const onPointerMove = (e: PointerEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const deltaX = ((e.clientX - dragInfo.startX) / rect.width) * 100;
+      const deltaY = ((e.clientY - dragInfo.startY) / rect.height) * 100;
+
+      // Find current interaction state from ref
+      setInteractions(prev => prev.map(i => {
+        if (i.id === dragInfo.id && i.position) {
+          const newX = Math.max(0, Math.min(100, dragInfo.startPosX + deltaX));
+          const newY = Math.max(0, Math.min(100, dragInfo.startPosY + deltaY));
+          
+          if (selectedInteraction?.id === i.id) {
+            setSelectedInteraction({ ...i, position: { ...i.position, x: newX, y: newY } });
+          }
+          return { ...i, position: { ...i.position, x: newX, y: newY } };
+        }
+        return i;
+      }));
+      setHasChanges(true);
+    };
+
+    const onPointerUp = () => {
+      setDragInfo(null);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    }
+  }, [dragInfo, selectedInteraction]);
 
   const handleSave = async () => {
     try {
@@ -357,7 +399,7 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
 
       {/* Center - Video Preview */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 relative bg-black rounded-lg overflow-hidden">
+        <div ref={containerRef} className="flex-1 relative bg-black rounded-lg overflow-hidden">
           <VideoPlayer
             src={video?.hlsUrl || video?.videoUrl || ''}
             poster={video?.thumbnailUrl}
@@ -375,10 +417,10 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                 <div
                   key={interaction.id}
                   className={cn(
-                    'absolute border-2 border-dashed transition-all',
+                    'absolute border-2 border-dashed transition-none',
                     selectedInteraction?.id === interaction.id
-                      ? 'border-primary bg-primary/10'
-                      : 'border-white/50 hover:border-white',
+                      ? 'border-primary bg-primary/10 z-20'
+                      : 'border-white/50 hover:border-white z-10',
                     isPlaying ? 'pointer-events-none' : 'pointer-events-auto cursor-move'
                   )}
                   style={{
@@ -386,8 +428,21 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                     top: `${interaction.position.y}%`,
                     width: `${interaction.position.width}px`,
                     height: `${interaction.position.height}px`,
+                    transform: 'translate(-50%, -50%)',
                   }}
-                  onClick={() => setSelectedInteraction(interaction)}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (isPlaying) return;
+                    setSelectedInteraction(interaction);
+                    setDragInfo({
+                      id: interaction.id,
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      startPosX: interaction.position!.x,
+                      startPosY: interaction.position!.y,
+                    });
+                  }}
                 >
                   {/* Preview content based on type */}
                   {interaction.type === 'BUTTON' && (

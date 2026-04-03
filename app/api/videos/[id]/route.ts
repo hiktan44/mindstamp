@@ -61,6 +61,7 @@ export async function PATCH(
 
     const data = await req.json()
     const { id } = await params
+    const { interactions, ...otherData } = data
 
     // Videoyu kontrol et
     const existingVideo = await prisma.video.findUnique({
@@ -76,17 +77,35 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const updateData: any = {
+      ...otherData,
+      updatedAt: new Date(),
+      // Eğer status PUBLISH ediliyorsa publishedAt'i ayarla
+      ...(otherData.status === 'PUBLISHED' && !existingVideo.publishedAt
+        ? { publishedAt: new Date() }
+        : {}),
+    }
+
+    if (interactions) {
+      updateData.interactions = {
+        deleteMany: {},
+        create: interactions.map((i: any) => ({
+          type: i.type,
+          startTime: i.startTime,
+          endTime: i.endTime,
+          config: i.config || {},
+          position: i.position || null,
+          style: i.style || null,
+          variables: i.variables || null,
+          logic: i.logic || null,
+        }))
+      }
+    }
+
     // Videoyu güncelle
     const video = await prisma.video.update({
       where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-        // Eğer status PUBLISH ediliyorsa publishedAt'i ayarla
-        ...(data.status === 'PUBLISHED' && !existingVideo.publishedAt
-          ? { publishedAt: new Date() }
-          : {}),
-      },
+      data: updateData,
     })
 
     return NextResponse.json({ video })
