@@ -1,0 +1,88 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { join } from 'path'
+import { readFile, stat } from 'fs/promises'
+import { createReadStream } from 'fs'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  try {
+    const { path } = await params
+    const filePath = join(process.cwd(), 'public', 'uploads', ...path)
+
+    // Check if file exists
+    try {
+      const fileStat = await stat(filePath)
+      if (!fileStat.isFile()) {
+        return new NextResponse('Not found', { status: 404 })
+      }
+
+      // Determine content type
+      let contentType = 'application/octet-stream'
+      const ext = path[path.length - 1].split('.').pop()?.toLowerCase()
+      
+      switch (ext) {
+        case 'm3u8':
+          contentType = 'application/vnd.apple.mpegurl'
+          break
+        case 'ts':
+          contentType = 'video/MP2T'
+          break
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg'
+          break
+        case 'mp4':
+          contentType = 'video/mp4'
+          break
+      }
+
+      // Handle Range requests (mainly for mp4 fallback, HLS rarely needs it but good to have)
+      const range = req.headers.get('range')
+      if (range) {
+        const parts = range.replace(/bytes=/, '').split('-')
+        const start = parseInt(parts[0], 10)
+        let end = parts[1] ? parseInt(parts[1], 10) : fileStat.size - 1
+
+        if (start >= fileStat.size || end >= fileStat.size) {
+          return new NextResponse('Requested range not satisfiable', {
+            status: 416,
+            headers: { 'Content-Range': `bytes */${fileStat.size}` }
+          })
+        }
+
+        const chunkSize = (end - start) + 1
+        const fileStream = createReadStream(filePath, { start, end })
+
+        return new NextResponse(fileStream as any, {
+          status: 206,
+          headers: {
+            'Content-Range': `bytes ${start}-${end}/${fileStat.size}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunkSize.toString(),
+            'Content-Type': contentType,
+            // Cache chunks
+            'Cache-Control': 'public, max-age=31536000, immutable'
+          }
+        })
+      }
+
+      // Read small files completely for HLS index files or thumbnails
+      const fileContent = await readFile(filePath)
+      
+      return new NextResponse(fileContent, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': ext === 'm3u8' ? 'public, max-age=0, must-revalidate' : 'public, max-age=31536000, immutable',
+          'Content-Length': fileStat.size.toString()
+        }
+      })
+    } catch (e) {
+      return new NextResponse('File not found', { status: 404 })
+    }
+  } catch (error) {
+    console.error('API /api/uploads error:', error)
+    return new NextResponse('Internal Server Error', { status: 500 })
+  }
+}

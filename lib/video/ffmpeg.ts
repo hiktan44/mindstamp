@@ -167,8 +167,8 @@ export async function processUploadedVideo(
 
     return {
       success: true,
-      hlsUrl: `/uploads/${videoId}/index.m3u8`,
-      thumbnailUrl: `/uploads/${videoId}/thumbnail.jpg`,
+      hlsUrl: `/api/uploads/${videoId}/index.m3u8`,
+      thumbnailUrl: `/api/uploads/${videoId}/thumbnail.jpg`,
       duration: result.duration,
     }
   } catch (error) {

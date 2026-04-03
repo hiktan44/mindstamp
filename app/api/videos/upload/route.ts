@@ -261,7 +261,7 @@ async function processWithoutTranscoding(videoId: string, file: File) {
   await prisma.video.update({
     where: { id: videoId },
     data: {
-      videoUrl: `/uploads/${fileName}`,
+      videoUrl: `/api/uploads/${fileName}`,
       status: 'DRAFT', // User needs to manually publish
     },
   })
