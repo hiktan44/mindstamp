@@ -34,7 +34,7 @@ export interface TranscodeResult {
 // Check if FFmpeg is installed
 export async function checkFFmpeg(): Promise<boolean> {
   try {
-    await execAsync('which ffmpeg')
+    await execAsync('ffmpeg -version')
     return true
   } catch {
     return false
@@ -77,15 +77,13 @@ export async function transcodeToHLS(
 ): Promise<TranscodeResult> {
   await ensureTempDir()
 
-  const jobId = randomUUID()
-  const outputPath = join(outputDir, jobId)
   const segmentFilename = 'segment_%03d.ts'
-  const playlistPath = join(outputPath, 'index.m3u8')
+  const playlistPath = join(outputDir, 'index.m3u8')
   const thumbnailPath = join(outputDir, 'thumbnail.jpg')
 
   try {
     // Create output directory
-    await mkdir(outputPath, { recursive: true })
+    await mkdir(outputDir, { recursive: true })
 
     // Get duration first
     const duration = await getVideoDuration(inputPath)
@@ -102,8 +100,8 @@ export async function transcodeToHLS(
       '-f', 'hls',
       '-hls_time', '6',
       '-hls_list_size', '0',
-      '-hls_segment_filename', join(outputPath, segmentFilename),
-      playlistPath
+      '-hls_segment_filename', `"${join(outputDir, segmentFilename)}"`,
+      `"${playlistPath}"`
     ].join(' ')
 
     await execAsync(ffmpegCommand)
@@ -130,7 +128,7 @@ export async function transcodeToHLS(
 // Process uploaded video file
 export async function processUploadedVideo(
   file: File,
-  outputDir: string
+  videoId: string
 ): Promise<{
   success: boolean
   hlsUrl?: string
@@ -141,7 +139,7 @@ export async function processUploadedVideo(
   await ensureTempDir()
 
   // Save uploaded file to temp location
-  const tempFilePath = join(TEMP_DIR, `${randomUUID()}-${file.name}`)
+  const tempFilePath = join(TEMP_DIR, `${randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`)
 
   try {
     // Convert File to Buffer and save
@@ -149,10 +147,15 @@ export async function processUploadedVideo(
     const buffer = Buffer.from(arrayBuffer)
     await writeFile(tempFilePath, buffer)
 
+    // Set absolute path for public/uploads
+    const absoluteOutputDir = join(process.cwd(), 'public', 'uploads', videoId)
+
     // Transcode to HLS
-    const result = await transcodeToHLS(tempFilePath, outputDir)
+    const result = await transcodeToHLS(tempFilePath, absoluteOutputDir)
 
     if (!result.success) {
+      // Clean up temp file on failure
+      await unlink(tempFilePath).catch(() => {})
       return {
         success: false,
         error: result.error,
@@ -164,8 +167,8 @@ export async function processUploadedVideo(
 
     return {
       success: true,
-      hlsUrl: `/uploads/${outputDir.split('/').pop()}/index.m3u8`,
-      thumbnailUrl: `/uploads/${outputDir.split('/').pop()}/thumbnail.jpg`,
+      hlsUrl: `/uploads/${videoId}/index.m3u8`,
+      thumbnailUrl: `/uploads/${videoId}/thumbnail.jpg`,
       duration: result.duration,
     }
   } catch (error) {

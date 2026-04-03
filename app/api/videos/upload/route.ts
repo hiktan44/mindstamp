@@ -4,11 +4,6 @@ import { prisma } from '@/lib/db'
 import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,7 +71,10 @@ export async function POST(req: NextRequest) {
       // Mark as failed
       prisma.video.update({
         where: { id: video.id },
-        data: { status: 'FAILED' },
+        data: { 
+          status: 'FAILED',
+          description: error instanceof Error ? error.message : String(error)
+        },
       }).catch(console.error)
     })
 
@@ -116,7 +114,7 @@ async function processVideoAsync(
       const hasFFmpeg = await checkFFmpeg()
 
       if (!hasFFmpeg) {
-        throw new Error('FFmpeg is not installed on this server')
+        throw new Error('FFmpeg (ffmpeg -version) was not found in the environment path or failed to execute.')
       }
 
       await processWithFFmpeg(videoId, file)
@@ -126,6 +124,13 @@ async function processVideoAsync(
     }
   } catch (error) {
     console.error('Video processing failed:', error)
+    await prisma.video.update({
+      where: { id: videoId },
+      data: { 
+        status: 'FAILED',
+        description: error instanceof Error ? error.message : String(error)
+      },
+    }).catch(console.error)
     throw error
   }
 }
@@ -148,7 +153,7 @@ async function processWithMux(videoId: string, file: File) {
     })
 
     if (!uploadResponse.ok) {
-      throw new Error('Failed to upload to Mux')
+      throw new Error(`Failed to upload to Mux: ${uploadResponse.statusText}`)
     }
 
     // Create asset from upload
@@ -217,12 +222,10 @@ async function pollMuxAssetReady(videoId: string, assetId: string) {
 
 // Process with FFmpeg
 async function processWithFFmpeg(videoId: string, file: File) {
-  const outputDir = `uploads/${videoId}`
-
-  const result = await processUploadedVideo(file, outputDir)
+  const result = await processUploadedVideo(file, videoId)
 
   if (!result.success || !result.hlsUrl) {
-    throw new Error(result.error || 'FFmpeg processing failed')
+    throw new Error(result.error || 'Video işlenirken bir hata oluştu. Daha fazla detay yok.')
   }
 
   // Update video with processing results
