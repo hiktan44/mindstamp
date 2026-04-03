@@ -73,7 +73,7 @@ async function handleAssetReady(data: any) {
     },
     data: {
       status: 'PUBLISHED',
-      hlsUrl: playback_ids?.[0]?.id,
+      hlsUrl: playback_ids?.[0]?.id
         ? `https://stream.mux.com/${playback_ids[0].id}.m3u8`
         : null,
       mp4Url: mp4_playback_ids?.[0]?.id
