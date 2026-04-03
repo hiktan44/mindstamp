@@ -92,25 +92,38 @@ export function InteractivePlayer({ video }: InteractivePlayerProps) {
     return currentTime >= interaction.startTime
   })
 
-  const handleInteractionClick = (interaction: Interaction) => {
+  const handleInteractionClick = (e: React.MouseEvent | React.PointerEvent, interaction: Interaction) => {
+    e.stopPropagation()
+    e.preventDefault()
+
     if (!interaction.config?.action) return
 
     switch (interaction.config.action) {
       case 'OPEN_LINK':
         if (interaction.config.url) {
-          window.open(interaction.config.url, '_blank')
+          // If URL doesn't have http/https, prepend it
+          let targetUrl = interaction.config.url;
+          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            targetUrl = 'https://' + targetUrl;
+          }
+          window.open(targetUrl, '_blank')
         }
         break
       case 'PAUSE':
         // The VideoPlayer component doesn't currently expose a way to pause programmatically
         // without a ref to the internal video element. A quick hack is to click the video:
-        const videoEl = document.querySelector('video')
-        if (videoEl) videoEl.pause()
+        const videoElPause = document.querySelector('video')
+        if (videoElPause && !videoElPause.paused) {
+           videoElPause.pause()
+        }
         break
       case 'CHANGE_TIME':
         if (interaction.config.targetTime !== undefined) {
-          const videoEl = document.querySelector('video')
-          if (videoEl) videoEl.currentTime = interaction.config.targetTime
+          const videoElTime = document.querySelector('video')
+          if (videoElTime) {
+             videoElTime.currentTime = interaction.config.targetTime;
+             videoElTime.play().catch(e => console.error("Could not resume playback", e));
+          }
         }
         break
       // CONTINUOS actions need no code
@@ -244,7 +257,8 @@ export function InteractivePlayer({ video }: InteractivePlayerProps) {
                 height: `${interaction.position.height}px`,
                 transform: 'translate(-50%, -50%)', // Centered around x,y
               }}
-              onClick={() => handleInteractionClick(interaction)}
+              onClick={(e) => handleInteractionClick(e, interaction)}
+              onPointerDown={(e) => handleInteractionClick(e, interaction)}
             >
               {interaction.type === 'BUTTON' && (
                 <div
