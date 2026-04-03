@@ -12,7 +12,9 @@ import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { Video, Mail, Lock, AlertCircle } from 'lucide-react'
 
-export default function LoginPage() {
+import { Suspense } from 'react'
+
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
@@ -198,5 +200,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Yükleniyor...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

@@ -60,22 +60,24 @@ export default function Home() {
               dinamik, ölçülebilir ve kişiselleştirilmiş deneyimler oluşturun.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button
-                size="lg"
-                className="min-w-[160px]"
-                onClick={() => window.location.href = '/kayit'}
-              >
-                Ücretsiz Başla
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="min-w-[160px]"
-                onClick={() => window.location.href = '/giris'}
-              >
-                Giriş Yap
-              </Button>
+              <Link href="/kayit">
+                <Button
+                  size="lg"
+                  className="min-w-[160px]"
+                >
+                  Ücretsiz Başla
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/giris">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="min-w-[160px]"
+                >
+                  Giriş Yap
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -154,14 +156,15 @@ export default function Home() {
               <p className="mt-4 text-muted-foreground">
                 Ücretsiz deneme ile platformu keşfedin. Kredi kartı gerekmez.
               </p>
-              <Button
-                size="lg"
-                className="mt-8"
-                onClick={() => window.location.href = '/kayit'}
-              >
-                Ücretsiz Dene
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href="/kayit">
+                <Button
+                  size="lg"
+                  className="mt-8"
+                >
+                  Ücretsiz Dene
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

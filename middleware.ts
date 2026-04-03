@@ -8,7 +8,7 @@ export default auth((req) => {
 
   // Super admin check for admin routes
   if (pathname.startsWith('/dashboard/admin')) {
-    if (token?.role !== 'SUPER_ADMIN') {
+    if (token?.user?.role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
   }
