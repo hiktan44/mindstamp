@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Mindstamp specific
+prisma/migrations/
+lib/video/tmp/
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Coolify
+.coolify/
+
+# Docker
+.dockerignore
+
+# Claude
+.claude/

@@ -11,12 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Link2,
-  Embed,
+  Code2,
   Share2,
   Mail,
-  Facebook,
-  Twitter,
-  Linkedin,
   CheckCircle2,
   Copy,
   QrCode,
@@ -154,7 +151,7 @@ export default function VideoSharePage({
             Link
           </TabsTrigger>
           <TabsTrigger value="embed">
-            <Embed className="mr-2 h-4 w-4" />
+            <Code2 className="mr-2 h-4 w-4" />
             Göm
           </TabsTrigger>
           <TabsTrigger value="social">
@@ -207,22 +204,25 @@ export default function VideoSharePage({
                     variant="outline"
                     size="icon"
                     onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`, '_blank')}
+                    title="Facebook'ta paylaş"
                   >
-                    <Facebook className="h-4 w-4 text-blue-600" />
+                    <span className="text-blue-600 font-bold">f</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(videoUrl)}`, '_blank')}
+                    title="X'te paylaş"
                   >
-                    <Twitter className="h-4 w-4 text-sky-500" />
+                    <span className="text-sky-500 font-bold">X</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(videoUrl)}`, '_blank')}
+                    title="LinkedIn'da paylaş"
                   >
-                    <Linkedin className="h-4 w-4 text-blue-700" />
+                    <span className="text-blue-700 font-bold">in</span>
                   </Button>
                 </div>
               </div>
@@ -274,7 +274,7 @@ export default function VideoSharePage({
                 <Label>Önizleme</Label>
                 <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                   <div className="text-center text-muted-foreground">
-                    <Embed className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <Code2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>Embed önizleme</p>
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function VideoSharePage({
                   className="justify-start h-auto py-4"
                   onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}&quote=${encodeURIComponent(video.title)}`, '_blank')}
                 >
-                  <Facebook className="mr-3 h-5 w-5 text-blue-600" />
+                  <span className="mr-3 h-5 w-5 flex items-center justify-center text-blue-600 font-bold">f</span>
                   <div className="text-left">
                     <div className="font-medium">Facebook</div>
                     <div className="text-sm text-muted-foreground">
@@ -340,9 +340,9 @@ export default function VideoSharePage({
                   className="justify-start h-auto py-4"
                   onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(videoUrl)}&text=${encodeURIComponent(video.title)}`, '_blank')}
                 >
-                  <Twitter className="mr-3 h-5 w-5 text-sky-500" />
+                  <span className="mr-3 h-5 w-5 flex items-center justify-center text-sky-500 font-bold">X</span>
                   <div className="text-left">
-                    <div className="font-medium">Twitter</div>
+                    <div className="font-medium">X (Twitter)</div>
                     <div className="text-sm text-muted-foreground">
                       Tweet olarak paylaş
                     </div>
@@ -354,7 +354,7 @@ export default function VideoSharePage({
                   className="justify-start h-auto py-4"
                   onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(videoUrl)}`, '_blank')}
                 >
-                  <Linkedin className="mr-3 h-5 w-5 text-blue-700" />
+                  <span className="mr-3 h-5 w-5 flex items-center justify-center text-blue-700 font-bold">in</span>
                   <div className="text-left">
                     <div className="font-medium">LinkedIn</div>
                     <div className="text-sm text-muted-foreground">

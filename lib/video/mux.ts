@@ -1,4 +1,4 @@
-import { Mux, Upload as MuxUpload } from '@mux/mux-node'
+import { Mux } from '@mux/mux-node'
 
 const muxTokenId = process.env.MUX_TOKEN_ID || ''
 const muxSecretKey = process.env.MUX_SECRET_KEY || ''
@@ -6,7 +6,6 @@ const muxWebhookSigningSecret = process.env.MUX_WEBHOOK_SIGNING_SECRET || ''
 
 // Mux client singleton
 let muxClient: Mux | null = null
-let muxUpload: MuxUpload | null = null
 
 export function getMuxClient() {
   if (!muxTokenId || !muxSecretKey) {
@@ -23,21 +22,6 @@ export function getMuxClient() {
   return muxClient
 }
 
-export function getMuxUpload() {
-  if (!muxTokenId || !muxSecretKey) {
-    throw new Error('Mux credentials not configured')
-  }
-
-  if (!muxUpload) {
-    muxUpload = new MuxUpload({
-      tokenId: muxTokenId,
-      tokenSecret: muxSecretKey,
-    })
-  }
-
-  return muxUpload
-}
-
 // Create direct upload URL
 export async function createMuxUpload(options: {
   title: string
@@ -45,15 +29,11 @@ export async function createMuxUpload(options: {
   timeout?: number // seconds
 }) {
   try {
-    const upload = await getMuxUpload().DirectUploads.create({
+    const client = getMuxClient()
+    const upload = await client.video.uploads.create({
       new_asset_settings: {
         playback_policies: ['public'],
         mp4_support: 'standard',
-        audio_track: {
-          encoding_options: {
-            codec: 'aac',
-          },
-        },
       },
       test_mode: process.env.NODE_ENV !== 'production',
       timeout: options.timeout || 3600, // 1 hour default
@@ -73,7 +53,7 @@ export async function createMuxUpload(options: {
 // Create asset from uploaded video
 export async function createMuxAsset(uploadId: string) {
   try {
-    const asset = await getMuxClient().Video.Assets.create({
+    const asset = await getMuxClient().video.assets.create({
       input: [{
         url: `https://storage.googleapis.com/muxdemofiles/mux-logo-animation.mp4`, // This would be the uploaded file URL
       }],
@@ -95,7 +75,7 @@ export async function createMuxAsset(uploadId: string) {
 // Get asset details
 export async function getMuxAsset(assetId: string) {
   try {
-    const asset = await getMuxClient().Video.Assets.get(assetId)
+    const asset = await getMuxClient().video.assets.get(assetId)
     return {
       assetId: asset.id,
       status: asset.status,
@@ -114,7 +94,7 @@ export async function getMuxAsset(assetId: string) {
 // Generate thumbnail from asset
 export async function generateMuxThumbnail(assetId: string, time: number = 1) {
   try {
-    const thumbnail = await getMuxClient().Video.Assets.createThumbnailTime(assetId, {
+    const thumbnail = await getMuxClient().video.assets.createThumbnailTime(assetId, {
       time: time,
     })
 
