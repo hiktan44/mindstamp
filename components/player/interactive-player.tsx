@@ -12,9 +12,12 @@ interface Interaction {
   id: string
   type: string
   startTime: number
-  endTime?: number
+  endTime?: number | null
   config: any
-  position?: { x: number; y: number; width: number; height: number }
+  position?: { x: number; y: number; width: number; height: number } | any
+  style?: any
+  variables?: any
+  logic?: any
 }
 
 interface InteractivePlayerProps {
