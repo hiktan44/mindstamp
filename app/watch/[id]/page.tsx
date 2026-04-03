@@ -26,7 +26,8 @@ async function getVideo(id: string) {
   }
 }
 
-export async function generateMetadata({ params }: WatchPageProps) {
+export async function generateMetadata({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const video = await getVideo(params.id)
 
   if (!video) {
@@ -46,7 +47,8 @@ export async function generateMetadata({ params }: WatchPageProps) {
   }
 }
 
-export default async function WatchPage({ params }: WatchPageProps) {
+export default async function WatchPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const video = await getVideo(params.id)
 
   if (!video) {

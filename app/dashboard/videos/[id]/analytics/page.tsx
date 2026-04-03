@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,10 +26,11 @@ import {
 import Link from 'next/link'
 
 export default function VideoAnalyticsPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const params = use(paramsPromise)
   const router = useRouter()
   const [video, setVideo] = useState<any>(null)
   const [analytics, setAnalytics] = useState<any>(null)

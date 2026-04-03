@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,10 +21,11 @@ import {
 import Link from 'next/link'
 
 export default function VideoEditPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const params = use(paramsPromise)
   const router = useRouter()
   const [video, setVideo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
