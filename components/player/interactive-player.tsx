@@ -1,8 +1,12 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { VideoPlayer } from './video-player'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Menu, X } from 'lucide-react'
 
 interface Interaction {
   id: string
@@ -20,13 +24,61 @@ interface InteractivePlayerProps {
     videoUrl?: string
     thumbnailUrl?: string
     interactions?: Interaction[]
+    settings?: any
   }
 }
 
 export function InteractivePlayer({ video }: InteractivePlayerProps) {
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [showLeadForm, setShowLeadForm] = useState(false)
+  const [hasSubmittedLead, setHasSubmittedLead] = useState(false)
+  const [showMagicMenu, setShowMagicMenu] = useState(false)
+  
+  const [leadForm, setLeadForm] = useState({ name: '', email: '', phone: '' })
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false)
+
   const playerRef = useRef<any>(null)
+
+  // Track lead capture timing
+  useEffect(() => {
+    if (!video.settings?.leadCapture?.enabled || hasSubmittedLead) return
+
+    const targetTime = video.settings.leadCapture.time || 0
+    if (currentTime >= targetTime && !showLeadForm) {
+      setShowLeadForm(true)
+      // Pause video
+      const videoEl = document.querySelector('video')
+      if (videoEl) videoEl.pause()
+    }
+  }, [currentTime, video.settings, hasSubmittedLead, showLeadForm])
+
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmittingLead(true)
+
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: video.id,
+          ...leadForm
+        })
+      })
+      
+      setHasSubmittedLead(true)
+      setShowLeadForm(false)
+      
+      // Resume video
+      const videoEl = document.querySelector('video')
+      if (videoEl) videoEl.play()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSubmittingLead(false)
+    }
+  }
 
   const interactions = video.interactions || []
 
@@ -72,11 +124,110 @@ export function InteractivePlayer({ video }: InteractivePlayerProps) {
         onTimeUpdate={setCurrentTime}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        className="w-full h-full"
+        className={cn("w-full h-full", showLeadForm && "blur-sm brightness-50")}
       />
 
+      {/* Lead Capture Overlay */}
+      {showLeadForm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4 text-center">
+              {video.settings?.leadCapture?.title || 'Videoyu İzlemek İçin Devam Edin'}
+            </h3>
+            <form onSubmit={handleLeadSubmit} className="space-y-4">
+              {video.settings?.leadCapture?.requireName && (
+                <div className="space-y-2">
+                  <Label>Ad Soyad</Label>
+                  <Input 
+                    required 
+                    value={leadForm.name} 
+                    onChange={e => setLeadForm({...leadForm, name: e.target.value})}
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>E-posta</Label>
+                <Input 
+                  required 
+                  type="email" 
+                  value={leadForm.email} 
+                  onChange={e => setLeadForm({...leadForm, email: e.target.value})}
+                />
+              </div>
+
+              {video.settings?.leadCapture?.requirePhone && (
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input 
+                    required 
+                    type="tel" 
+                    value={leadForm.phone} 
+                    onChange={e => setLeadForm({...leadForm, phone: e.target.value})}
+                  />
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isSubmittingLead}>
+                {isSubmittingLead ? 'Gönderiliyor...' : 'Devam Et'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Magic Menu Overlay */}
+      {video.settings?.magicMenu?.enabled && !showLeadForm && (
+        <div className="absolute top-4 right-4 z-40">
+          {!showMagicMenu ? (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="rounded-full shadow-lg opacity-80 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowMagicMenu(true)
+              }}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          ) : (
+            <div className="bg-black/80 backdrop-blur-sm rounded-xl p-4 shadow-2xl w-48 border border-white/10 animate-in slide-in-from-top-2 fade-in">
+              <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                <span className="font-semibold text-white">Menü</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowMagicMenu(false)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-2 flex flex-col">
+                {(video.settings?.magicMenu?.items || []).map((item: any, idx: number) => (
+                  <a
+                    key={idx}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-left px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Interactions Overlay */}
-      <div className="absolute inset-0 pointer-events-none z-10 p-2">
+      {!showLeadForm && (
+        <div className="absolute inset-0 pointer-events-none z-10 p-2">
         {visibleInteractions.map((interaction) => {
           if (!interaction.position) return null
           return (
@@ -144,6 +295,7 @@ export function InteractivePlayer({ video }: InteractivePlayerProps) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

@@ -253,6 +253,204 @@ export default function VideoEditPage({
                   )}
                 </div>
               </div>
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Lead Capture (Veri Toplama)</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="lead-enabled"
+                      checked={video.settings?.leadCapture?.enabled || false}
+                      onChange={(e) => {
+                        setVideo({
+                          ...video,
+                          settings: {
+                            ...video.settings,
+                            leadCapture: { ...video.settings?.leadCapture, enabled: e.target.checked }
+                          }
+                        })
+                        setHasChanges(true)
+                      }}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="lead-enabled">Müşteri Formunu Aktifleştir</Label>
+                  </div>
+                  {video.settings?.leadCapture?.enabled && (
+                    <div className="pl-6 space-y-4 border-l-2">
+                      <div className="space-y-2">
+                        <Label>Form Başlığı / Mesajı</Label>
+                        <Input
+                          value={video.settings?.leadCapture?.title || 'Videoyu izlemek için formu doldurun'}
+                          onChange={(e) => {
+                            setVideo({
+                              ...video,
+                              settings: {
+                                ...video.settings,
+                                leadCapture: { ...video.settings?.leadCapture, title: e.target.value }
+                              }
+                            })
+                            setHasChanges(true)
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Görünme Zamanı (Saniye)</Label>
+                        <Input
+                          type="number"
+                          value={video.settings?.leadCapture?.time ?? 0}
+                          onChange={(e) => {
+                            setVideo({
+                              ...video,
+                              settings: {
+                                ...video.settings,
+                                leadCapture: { ...video.settings?.leadCapture, time: parseInt(e.target.value) }
+                              }
+                            })
+                            setHasChanges(true)
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground">0 = Video başlamadan önce</p>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={video.settings?.leadCapture?.requireName || false}
+                            onChange={(e) => {
+                              setVideo({
+                                ...video,
+                                settings: {
+                                  ...video.settings,
+                                  leadCapture: { ...video.settings?.leadCapture, requireName: e.target.checked }
+                                }
+                              })
+                              setHasChanges(true)
+                            }}
+                          />
+                          <Label>İsim İste</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={video.settings?.leadCapture?.requirePhone || false}
+                            onChange={(e) => {
+                              setVideo({
+                                ...video,
+                                settings: {
+                                  ...video.settings,
+                                  leadCapture: { ...video.settings?.leadCapture, requirePhone: e.target.checked }
+                                }
+                              })
+                              setHasChanges(true)
+                            }}
+                          />
+                          <Label>Telefon İste</Label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Magic Menu</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="magic-enabled"
+                      checked={video.settings?.magicMenu?.enabled || false}
+                      onChange={(e) => {
+                        setVideo({
+                          ...video,
+                          settings: {
+                            ...video.settings,
+                            magicMenu: { ...video.settings?.magicMenu, enabled: e.target.checked }
+                          }
+                        })
+                        setHasChanges(true)
+                      }}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="magic-enabled">Sihirli Menüyü Aktifleştir (Videoda her zaman görünen bağlantılar)</Label>
+                  </div>
+                  
+                  {video.settings?.magicMenu?.enabled && (
+                    <div className="pl-6 space-y-4">
+                      <div className="space-y-4">
+                        <Label>Menü Linkleri</Label>
+                        {(video.settings?.magicMenu?.items || []).map((item: any, idx: number) => (
+                          <div key={idx} className="flex gap-2">
+                            <Input
+                              placeholder="Buton İsmi (örn: İletişim)"
+                              value={item.label}
+                              onChange={(e) => {
+                                const newItems = [...(video.settings.magicMenu.items || [])]
+                                newItems[idx].label = e.target.value
+                                setVideo({
+                                  ...video,
+                                  settings: {
+                                    ...video.settings,
+                                    magicMenu: { ...video.settings.magicMenu, items: newItems }
+                                  }
+                                })
+                                setHasChanges(true)
+                              }}
+                            />
+                            <Input
+                              placeholder="URL (örn: https://...)"
+                              value={item.url}
+                              onChange={(e) => {
+                                const newItems = [...(video.settings.magicMenu.items || [])]
+                                newItems[idx].url = e.target.value
+                                setVideo({
+                                  ...video,
+                                  settings: {
+                                    ...video.settings,
+                                    magicMenu: { ...video.settings.magicMenu, items: newItems }
+                                  }
+                                })
+                                setHasChanges(true)
+                              }}
+                            />
+                            <Button 
+                              variant="destructive" 
+                              onClick={() => {
+                                const newItems = [...(video.settings.magicMenu.items || [])]
+                                newItems.splice(idx, 1)
+                                setVideo({
+                                  ...video,
+                                  settings: {
+                                    ...video.settings,
+                                    magicMenu: { ...video.settings.magicMenu, items: newItems }
+                                  }
+                                })
+                                setHasChanges(true)
+                              }}
+                            >Sil</Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const newItems = [...(video.settings?.magicMenu?.items || []), { label: '', url: '' }]
+                            setVideo({
+                              ...video,
+                              settings: {
+                                ...video.settings,
+                                magicMenu: { ...video.settings?.magicMenu, items: newItems }
+                              }
+                            })
+                            setHasChanges(true)
+                          }}
+                        >
+                          + Yeni Link Ekle
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

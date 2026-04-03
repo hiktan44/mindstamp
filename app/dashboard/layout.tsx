@@ -44,6 +44,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Videolar', href: '/dashboard/videos', icon: Video },
   { name: 'Klasörler', href: '/dashboard/folders', icon: FolderOpen },
+  { name: 'Müşteriler', href: '/dashboard/leads', icon: Users },
   { name: 'Analitik', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Genie AI', href: '/dashboard/genie', icon: Sparkles },
   { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings },
