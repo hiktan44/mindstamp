@@ -1,7 +1,34 @@
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Settings } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { revalidatePath } from 'next/cache'
 
-export default function SettingsPage() {
+async function updateProfile(formData: FormData) {
+  'use server'
+  const session = await auth()
+  if (!session?.user?.email) return
+  
+  const name = formData.get('name') as string
+  const phone = formData.get('phone') as string
+  
+  await prisma.user.update({
+    where: { email: session.user.email },
+    data: { name, phone }
+  })
+  
+  revalidatePath('/dashboard/settings')
+}
+
+export default async function SettingsPage() {
+  const session = await auth()
+  
+  const user = session?.user?.email ? await prisma.user.findUnique({
+    where: { email: session.user.email }
+  }) : null
+
   return (
     <div className="space-y-6">
       <div>
@@ -11,24 +38,52 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-primary" />
-            Profil ve Hesap Özelleştirmeleri
-          </CardTitle>
-          <CardDescription>
-            Sistem ayarları menüsü yapım aşamasındadır.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center p-12 text-center border-t">
-          <Settings className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium">Konfigürasyon Paneli</h3>
-          <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
-            Fatura, API entegrasyonları, kullanıcı rolleri ve profil kişiselleştirme ayarları en kısa sürede aktif hale getirilecektir.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profil Bilgileri</CardTitle>
+            <CardDescription>
+              Kişisel bilgilerinizi buradan güncelleyebilirsiniz.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={updateProfile} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-posta Adresi (Değiştirilemez)</Label>
+                <Input id="email" type="email" disabled value={user?.email || ''} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Ad Soyad</Label>
+                <Input id="name" name="name" defaultValue={user?.name || ''} placeholder="Adınız Soyadınız" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefon Numarası</Label>
+                <Input id="phone" name="phone" defaultValue={user?.phone || ''} placeholder="+90 555 123 4567" />
+              </div>
+              <Button type="submit">Değişiklikleri Kaydet</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hesap Detayları</CardTitle>
+            <CardDescription>
+              Plan ve rol bilgileriniz.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">Mevcut Rol</div>
+              <div className="text-2xl font-bold">{user?.role}</div>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">Kayıt Tarihi</div>
+              <div className="text-lg font-medium">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '-'}</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
