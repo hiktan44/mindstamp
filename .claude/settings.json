@@ -4,7 +4,9 @@
       "mcp__task-master-ai__parse_prd",
       "mcp__task-master-ai__get_task",
       "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --use-npm)",
-      "Bash(npx shadcn@latest init -y -d)"
+      "Bash(npx shadcn@latest init -y -d)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add card input label select dropdown-menu avatar badge separator tabs dialog sonner navigation-menu sidebar sheet)"
     ]
   }
 }

@@ -1,0 +1,420 @@
+// Mindstamp Klonu - Database Schema
+// Prisma ORM + PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// KULLANICI VE YETKİLENDİRME
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  emailVerified DateTime?
+  name         String?
+  password     String?  // Hashlı şifre (OAuth kullanıyorsanız null)
+  image        String?  // Profil resmi URL
+  role         Role     @default(USER)
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // İlişkiler
+  accounts      Account[]
+  sessions      Session[]
+  organizations OrganizationMember[]
+  videos        Video[]
+  analytics     Analytics[]
+  comments      Comment[]
+  leads         Lead[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// ORGANIZASYON YÖNETİMİ
+// ============================================
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  members OrganizationMember[]
+  videos  Video[]
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrgRole  @default(MEMBER)
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+// ============================================
+// VİDEO YÖNETİMİ
+// ============================================
+
+model Video {
+  id               String        @id @default(cuid())
+  title            String
+  description      String?       @db.Text
+  status           VideoStatus   @default(DRAFT)
+  slug             String?       @unique
+
+  // Video bilgileri
+  videoUrl         String?       // Orijinal video URL
+  hlsUrl           String?       // HLS oynatma URL
+  mp4Url           String?       // MP8 yedek URL
+  thumbnailUrl     String?       // Kapak resmi
+  duration         Float?        // Video süresi (saniye)
+
+  // Mux integration
+  muxAssetId       String?       @unique // Mux asset ID
+  muxUploadId      String?       // Mux upload ID
+
+  // Organizasyon
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // Sahibi
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ayarlar
+  settings         Json?         // Video ayarları (privacy, player, vs.)
+
+  // Tasarım
+  design           Json?         // Tasarım ayarları (renkler, font, vs.)
+
+  // Meta
+  tags             String[]
+  folderId         String?
+  viewCount        Int           @default(0)
+  interactionCount Int           @default(0)
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  publishedAt      DateTime?
+
+  // İlişkiler
+  interactions     Interaction[]
+  analytics        Analytics[]
+  comments         Comment[]
+  leads            Lead[]
+  chapters         Chapter[]
+  captions         Caption[]
+  transcripts      Transcript[]
+  endScreens       EndScreen[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([organizationId])
+}
+
+// ============================================
+// ETKİLEŞİMLER
+// ============================================
+
+model Interaction {
+  id        String          @id @default(cuid())
+  videoId   String
+  video     Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // Zamanlama
+  startTime Float           // Başlangıç zamanı (saniye)
+  endTime   Float?          // Bitiş zamanı (saniye)
+
+  // Tip ve yapılandırma
+  type      InteractionType
+  config    Json            // Etkileşim tipine göre özelleşmiş yapılandırma
+
+  // Konum ve stil
+  position  Json?           // {x, y, width, height} yüde bazlı
+  style     Json?           // Özel stil ayarları
+
+  // Logic
+  variables Json?           // Değişken atamaları
+  logic     Json?           // Koşullu mantık
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([videoId])
+  @@index([startTime])
+}
+
+// ============================================
+// ANALYTICS VE RAPORLAMA
+// ============================================
+
+model Analytics {
+  id          String   @id @default(cuid())
+  videoId     String
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // İzleyici bilgisi
+  viewerId    String?  // Benzersiz izleyici ID (cookie/fingerprint)
+  userId      String?  // Kayıtlı kullanıcı (varsa)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Oturum bilgisi
+  sessionId   String?  // Oturum ID
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  // İzleme istatistikleri
+  watchTime   Float    @default(0)  // İzlenen süre (saniye)
+  progress    Float    @default(0)  // İlerleme yüzdesi
+  completed   Boolean  @default(false)
+
+  // Cihaz ve konum
+  device      String?
+  browser     String?
+  os          String?
+  country     String?
+  city        String?
+
+  // Etkileşim verileri
+  interactions Json?   // Tıklanan etkileşimler
+
+  @@index([videoId])
+  @@index([viewerId])
+  @@index([sessionId])
+}
+
+model InteractionEvent {
+  id          String   @id @default(cuid())
+  analyticsId String?
+  interactionId String?
+
+  eventType   String   // click, view, submit, etc.
+  data        Json?
+
+  createdAt   DateTime @default(now())
+
+  @@index([analyticsId])
+  @@index([interactionId])
+}
+
+// ============================================
+// LEAD CAPTURE
+// ============================================
+
+model Lead {
+  id          String   @id @default(cuid())
+  videoId     String
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId      String?  // Kayıtlı kullanıcı
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Lead bilgileri
+  name        String?
+  email       String?
+  phone       String?
+  customId    String?
+  customData  Json?
+
+  // Meta
+  viewerId    String?  // Benzersiz izleyici ID
+  capturedAt  DateTime @default(now())
+
+  @@index([videoId])
+  @@index([email])
+}
+
+// ============================================
+// YORUMLAR
+// ============================================
+
+model Comment {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Yorum bilgisi
+  content   String   @db.Text
+  timestamp Float?   // Video zaman damgası
+
+  // Yanıt ilişkisi
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoId])
+}
+
+// ============================================
+// CHAPTERS, CAPTIONS, TRANSCRIPTS
+// ============================================
+
+model Chapter {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  title     String
+  startTime Float
+  endTime   Float?
+  order     Int
+
+  createdAt DateTime @default(now())
+
+  @@index([videoId])
+  @@index([startTime])
+}
+
+model Caption {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  language  String   // ISO 639-1 kodu (tr, en, vs.)
+  content   String   @db.Text  // VTT/SRT formatı
+  url       String?  // VTT dosya URL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([videoId, language])
+  @@index([videoId])
+}
+
+model Transcript {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  content   String   @db.Text
+  language  String   @default("tr")
+  isAiGenerated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([videoId])
+  @@index([videoId])
+}
+
+// ============================================
+// END SCREEN
+// ============================================
+
+model EndScreen {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // Konfigürasyon
+  enabled   Boolean  @default(true)
+  layout    String?
+  buttonConfig Json? // Buton ayarları
+  message   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([videoId])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum VideoStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  PROCESSING
+  FAILED
+}
+
+enum InteractionType {
+  BUTTON
+  HOTSPOT
+  QUESTION
+  TEXT
+  IMAGE
+  VIDEO_CLIP
+  AUDIO_CLIP
+  DRAWING
+  CHANGE_TIME
+  PAUSE
+  SWITCH_VIDEO
+  SET_VARIABLE
+  OPEN_MAGIC_MENU
+  ASK_CHATGPT
+  REDIRECT_LINK
+  RESET_INTERACTIONS
+  RESET_VIEWER_STATE
+}
