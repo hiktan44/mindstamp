@@ -4,9 +4,9 @@ import { prisma } from '@/lib/db'
 import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
 
-export async function POST(req: NextRequest) {
+export const POST = auth(async (req: any) => {
   try {
-    const session = await auth()
+    const session = req.auth
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // Async video processing
 async function processVideoAsync(
