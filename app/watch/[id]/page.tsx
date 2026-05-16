@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Share2, Eye, Clock, Lock } from 'lucide-react'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { canWatchVideo } from '@/lib/video/access'
+import { PasswordGate } from '@/components/player/password-gate'
 
 interface WatchPageProps {
   params: {
@@ -64,11 +66,14 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
     notFound()
   }
 
-  // Check if video is published or user is owner
   const session = await auth()
-  const isOwner = session?.user?.id === video.userId
+  const access = await canWatchVideo(video, session?.user?.id)
 
-  if (video.status !== 'PUBLISHED' && !isOwner) {
+  if (!access.allowed && access.reason === 'password_required') {
+    return <PasswordGate videoId={video.id} />
+  }
+
+  if (!access.allowed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Card className="max-w-md">

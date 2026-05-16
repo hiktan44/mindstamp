@@ -20,7 +20,17 @@ interface VideoPlayerProps {
   src: string
   poster?: string
   className?: string
+  autoplay?: boolean
+  muted?: boolean
+  controls?: boolean
+  startTime?: number
+  captions?: Array<{
+    language: string
+    url?: string | null
+    content?: string | null
+  }>
   onTimeUpdate?: (currentTime: number) => void
+  onDurationChange?: (duration: number) => void
   onPlay?: () => void
   onPause?: () => void
   onEnded?: () => void
@@ -30,7 +40,13 @@ export function VideoPlayer({
   src,
   poster,
   className,
+  autoplay = false,
+  muted = false,
+  controls = true,
+  startTime = 0,
+  captions = [],
   onTimeUpdate,
+  onDurationChange,
   onPlay,
   onPause,
   onEnded,
@@ -42,10 +58,11 @@ export function VideoPlayer({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
-  const [isMuted, setIsMuted] = useState(false)
+  const [isMuted, setIsMuted] = useState(muted)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const [captionTracks, setCaptionTracks] = useState<Array<{ language: string; url: string }>>([])
 
   // Format time (seconds to MM:SS)
   const formatTime = (time: number) => {
@@ -78,12 +95,41 @@ export function VideoPlayer({
         video.src = src
     }
 
+    video.muted = muted
+    video.volume = muted ? 0 : volume
+    if (startTime > 0) {
+      video.currentTime = startTime
+    }
+    if (autoplay) {
+      video.play().catch(() => null)
+    }
+
     return () => {
       if (hls) {
         hls.destroy()
       }
     }
-  }, [src])
+  }, [src, autoplay, muted, startTime, volume])
+
+  useEffect(() => {
+    const objectUrls: string[] = []
+    const tracks = captions
+      .map((caption) => {
+        if (caption.url) return { language: caption.language, url: caption.url }
+        if (!caption.content) return null
+
+        const objectUrl = URL.createObjectURL(new Blob([caption.content], { type: 'text/vtt' }))
+        objectUrls.push(objectUrl)
+        return { language: caption.language, url: objectUrl }
+      })
+      .filter((caption): caption is { language: string; url: string } => Boolean(caption))
+
+    setCaptionTracks(tracks)
+
+    return () => {
+      objectUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [captions])
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
@@ -94,7 +140,7 @@ export function VideoPlayer({
       video.pause()
       onPause?.()
     } else {
-      video.play()
+      video.play().catch(() => null)
       onPlay?.()
     }
     setIsPlaying(!isPlaying)
@@ -269,16 +315,29 @@ export function VideoPlayer({
         }}
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration)
+          onDurationChange?.(e.currentTarget.duration)
         }}
         onEnded={() => {
           setIsPlaying(false)
           onEnded?.()
         }}
         onClick={togglePlay}
-      />
+        playsInline
+      >
+        {captionTracks
+          .map((caption) => (
+            <track
+              key={caption.language}
+              src={caption.url}
+              kind="subtitles"
+              srcLang={caption.language}
+              label={caption.language.toUpperCase()}
+            />
+          ))}
+      </video>
 
       {/* Controls Overlay */}
-      <div
+      {controls && <div
         className={cn(
           'absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent',
           'transition-opacity duration-300',
@@ -389,7 +448,7 @@ export function VideoPlayer({
             </Button>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

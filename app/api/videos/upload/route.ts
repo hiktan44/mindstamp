@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { createMuxUpload, getMuxPlaybackUrl, createMuxAsset } from '@/lib/video/mux'
+import { createMuxUpload, getMuxPlaybackUrl } from '@/lib/video/mux'
 import { processUploadedVideo, checkFFmpeg } from '@/lib/video/ffmpeg'
+import { uploadVideoSchema } from '@/lib/validators/video'
 
 
 export async function POST(req: NextRequest) {
@@ -15,9 +16,22 @@ export async function POST(req: NextRequest) {
 
     const data = await req.formData()
     const file = data.get('file') as File
-    const title = data.get('title') as string
-    const url = data.get('url') as string
-    const processingMethod = data.get('processing') as 'mux' | 'ffmpeg' | 'none' || 'ffmpeg'
+    const parsed = uploadVideoSchema.safeParse({
+      title: data.get('title') as string | null,
+      url: data.get('url') as string | null,
+      processing: data.get('processing') || 'ffmpeg',
+    })
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid payload', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const title = parsed.data.title || ''
+    const url = parsed.data.url || ''
+    const processingMethod = parsed.data.processing
 
     // URL ile video ekleme
     if (url) {
@@ -156,26 +170,15 @@ async function processWithMux(videoId: string, file: File) {
       throw new Error(`Failed to upload to Mux: ${uploadResponse.statusText}`)
     }
 
-    // Create asset from upload
-    const { assetId, playbackId, status } = await createMuxAsset(uploadId)
-
-    // Update video with Mux info
+    // Direct uploads create the asset asynchronously. The webhook will attach
+    // the asset id and playback urls when Mux finishes ingesting the upload.
     await prisma.video.update({
       where: { id: videoId },
       data: {
-        muxAssetId: assetId,
         muxUploadId: uploadId,
-        hlsUrl: playbackId ? getMuxPlaybackUrl(playbackId) : null,
-        status: status === 'ready' ? 'PUBLISHED' : 'PROCESSING',
-        // Store raw file URL if available
-        videoUrl: uploadUrl,
+        status: 'PROCESSING',
       },
     })
-
-    // Poll for asset readiness
-    if (status !== 'ready') {
-      await pollMuxAssetReady(videoId, assetId)
-    }
   } catch (error) {
     console.error('Mux processing error:', error)
     throw error

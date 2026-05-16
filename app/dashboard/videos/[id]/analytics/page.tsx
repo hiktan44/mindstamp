@@ -57,25 +57,12 @@ export default function VideoAnalyticsPage({
 
   const fetchAnalytics = async () => {
     try {
-      // Mock analytics data - gerçek API'den gelecek
-      setAnalytics({
-        summary: {
-          totalViews: 0,
-          uniqueViewers: 0,
-          avgWatchTime: 0,
-          completionRate: 0,
-        },
-        viewsOverTime: [],
-        topInteractions: [],
-        devices: {
-          desktop: 0,
-          mobile: 0,
-          tablet: 0,
-        },
-        locations: [],
-      })
+      const response = await fetch(`/api/videos/${params.id}/analytics?range=${dateRange}`)
+      if (!response.ok) throw new Error('Analitik alınamadı')
+      setAnalytics(await response.json())
     } catch (error) {
       console.error('Analytics fetch error:', error)
+      setAnalytics(null)
     }
   }
 
@@ -129,7 +116,12 @@ export default function VideoAnalyticsPage({
               <SelectItem value="all">Tüm Zamanlar</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.location.href = `/api/videos/${params.id}/analytics/export`
+            }}
+          >
             <Download className="mr-2 h-4 w-4" />
             Dışa Aktar
           </Button>
@@ -277,7 +269,9 @@ export default function VideoAnalyticsPage({
             <CardContent>
               {(video.interactions?.length || 0) > 0 ? (
                 <div className="space-y-4">
-                  {video.interactions.map((interaction: any) => (
+                  {video.interactions.map((interaction: any) => {
+                    const stats = analytics?.topInteractions?.find((item: any) => item.id === interaction.id)
+                    return (
                     <div
                       key={interaction.id}
                       className="flex items-center justify-between p-4 border rounded-lg"
@@ -293,11 +287,13 @@ export default function VideoAnalyticsPage({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">0</p>
-                        <p className="text-xs text-muted-foreground">Tıklama</p>
+                        <p className="text-2xl font-bold">{stats?.clicks || stats?.submits || 0}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {stats?.views || 0} görüntülenme
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -343,13 +339,31 @@ export default function VideoAnalyticsPage({
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground">
-                  Henüz izleyici verisi yok
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Video paylaşıldığında izleyici verileri burada görüntülenecek
-                </p>
+                {(analytics?.viewers?.length || 0) === 0 ? (
+                  <>
+                    <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">Henüz izleyici verisi yok</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Video paylaşıldığında izleyici verileri burada görüntülenecek
+                    </p>
+                  </>
+                ) : (
+                  <div className="space-y-2 text-left">
+                    {analytics.viewers.map((viewer: any) => (
+                      <div key={viewer.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <p className="font-mono text-xs">{viewer.viewerId}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {viewer.device || 'unknown'} • {viewer.browser || 'unknown'} • {viewer.os || 'unknown'}
+                          </p>
+                        </div>
+                        <Badge variant={viewer.completedAt ? 'default' : 'secondary'}>
+                          {viewer.completedAt ? 'Tamamladı' : 'İzliyor'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

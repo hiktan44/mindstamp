@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { leadCreateSchema } from '@/lib/validators/video'
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json()
-    const { videoId, name, email, phone } = data
-
-    if (!videoId) {
-      return NextResponse.json({ error: 'videoId is required' }, { status: 400 })
+    const parsed = leadCreateSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json({
+        error: 'Invalid payload',
+        details: parsed.error.flatten(),
+      }, { status: 400 })
     }
+
+    const { videoId, name, email, phone, customId, customData } = parsed.data
 
     // Check if video exists
     const video = await prisma.video.findUnique({
@@ -25,6 +29,8 @@ export async function POST(req: Request) {
         name,
         email,
         phone,
+        customId,
+        customData: customData ?? undefined,
       }
     })
 

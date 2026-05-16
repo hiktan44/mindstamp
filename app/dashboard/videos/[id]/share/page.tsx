@@ -101,7 +101,8 @@ export default function VideoSharePage({
   }
 
   const videoUrl = `${window.location.origin}/watch/${video.id}`
-  const embedCode = `<iframe src="${window.location.origin}/embed/${video.id}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`
+  const embedCode = `<iframe src="${window.location.origin}/embed/${video.id}?controls=1" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(videoUrl)}`
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -229,10 +230,13 @@ export default function VideoSharePage({
               </div>
 
               <div className="border-t pt-4">
-                <Button variant="outline" className="w-full">
-                  <QrCode className="mr-2 h-4 w-4" />
-                  QR Kod Oluştur
-                </Button>
+                <div className="flex flex-col items-center gap-3">
+                  <img src={qrCodeUrl} alt="Video QR kodu" className="h-40 w-40 rounded-lg border bg-white p-2" />
+                  <Button variant="outline" className="w-full" onClick={() => window.open(qrCodeUrl, '_blank')}>
+                    <QrCode className="mr-2 h-4 w-4" />
+                    QR Kodu Aç
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -292,6 +296,9 @@ export default function VideoSharePage({
                       className="h-4 w-4"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Embed URL parametreleri: <code>?autoplay=1&amp;muted=1&amp;controls=1&amp;start=30</code>
+                  </p>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="controls">Kontrolleri Göster</Label>
                     <input

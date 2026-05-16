@@ -17,6 +17,9 @@ import {
   Settings,
   Palette,
   Layout as LayoutIcon,
+  GraduationCap,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -139,7 +142,7 @@ export default function VideoEditPage({
         onValueChange={(value) => setActiveTab(value || 'editor')}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="editor">
             <LayoutIcon className="mr-2 h-4 w-4" />
             Editör
@@ -151,6 +154,10 @@ export default function VideoEditPage({
           <TabsTrigger value="design">
             <Palette className="mr-2 h-4 w-4" />
             Tasarım
+          </TabsTrigger>
+          <TabsTrigger value="learning">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Eğitim
           </TabsTrigger>
           <TabsTrigger value="share">
             <Eye className="mr-2 h-4 w-4" />
@@ -467,6 +474,10 @@ export default function VideoEditPage({
           </Card>
         </TabsContent>
 
+        <TabsContent value="learning" className="mt-6">
+          <LearningSettings video={video} onRefresh={fetchVideo} />
+        </TabsContent>
+
         <TabsContent value="share" className="mt-6">
           <Card>
             <CardContent className="p-6 space-y-6">
@@ -497,13 +508,13 @@ export default function VideoEditPage({
                       <div className="space-y-2">
                         <Textarea
                           readOnly
-                          value={`<iframe src="${window.location.origin}/embed/${video.id}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`}
+                          value={`<iframe src="${window.location.origin}/embed/${video.id}?controls=1" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`}
                           rows={3}
                         />
                         <Button
                           variant="outline"
                           onClick={() => {
-                            navigator.clipboard.writeText(`<iframe src="${window.location.origin}/embed/${video.id}" width="640" height="360" frameborder="0" allowfullscreen></iframe>`)
+                            navigator.clipboard.writeText(`<iframe src="${window.location.origin}/embed/${video.id}?controls=1" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`)
                           }}
                         >
                           Kopyala
@@ -532,5 +543,177 @@ export default function VideoEditPage({
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+function LearningSettings({ video, onRefresh }: { video: any; onRefresh: () => Promise<void> }) {
+  const [chapters, setChapters] = useState(
+    video.chapters?.length
+      ? video.chapters
+      : [{ title: 'Giriş', startTime: 0, endTime: null, order: 0 }]
+  )
+  const [transcript, setTranscript] = useState(video.transcripts?.[0]?.content || '')
+  const [endScreen, setEndScreen] = useState({
+    enabled: video.endScreens?.[0]?.enabled ?? false,
+    message: video.endScreens?.[0]?.message || 'Video tamamlandı',
+    buttonLabel: video.endScreens?.[0]?.buttonConfig?.label || '',
+    buttonUrl: video.endScreens?.[0]?.buttonConfig?.url || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const saveLearningSettings = async () => {
+    setSaving(true)
+    try {
+      await fetch(`/api/videos/${video.id}/chapters`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chapters: chapters.map((chapter: any, index: number) => ({
+            title: chapter.title,
+            startTime: Number(chapter.startTime) || 0,
+            endTime: chapter.endTime === '' || chapter.endTime === null ? null : Number(chapter.endTime),
+            order: index,
+          })),
+        }),
+      })
+
+      if (transcript.trim()) {
+        await fetch(`/api/videos/${video.id}/transcript`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: transcript,
+            language: 'tr',
+            isAiGenerated: false,
+          }),
+        })
+      }
+
+      await fetch(`/api/videos/${video.id}/end-screen`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: endScreen.enabled,
+          message: endScreen.message,
+          layout: 'score-summary',
+          buttonConfig: endScreen.buttonUrl
+            ? { label: endScreen.buttonLabel || 'Devam Et', url: endScreen.buttonUrl }
+            : {},
+        }),
+      })
+
+      await onRefresh()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-8">
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Bölümler</h3>
+              <p className="text-sm text-muted-foreground">İzleyici sidebar’ında görünen chapter zamanları.</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setChapters([...chapters, { title: '', startTime: 0, endTime: null, order: chapters.length }])}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Bölüm Ekle
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {chapters.map((chapter: any, index: number) => (
+              <div key={index} className="grid gap-2 rounded-lg border p-3 md:grid-cols-[1fr_120px_120px_40px]">
+                <Input
+                  value={chapter.title}
+                  placeholder="Bölüm adı"
+                  onChange={(event) => {
+                    const next = [...chapters]
+                    next[index] = { ...chapter, title: event.target.value }
+                    setChapters(next)
+                  }}
+                />
+                <Input
+                  type="number"
+                  value={chapter.startTime}
+                  placeholder="Başlangıç"
+                  onChange={(event) => {
+                    const next = [...chapters]
+                    next[index] = { ...chapter, startTime: event.target.value }
+                    setChapters(next)
+                  }}
+                />
+                <Input
+                  type="number"
+                  value={chapter.endTime || ''}
+                  placeholder="Bitiş"
+                  onChange={(event) => {
+                    const next = [...chapters]
+                    next[index] = { ...chapter, endTime: event.target.value }
+                    setChapters(next)
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setChapters(chapters.filter((_: any, chapterIndex: number) => chapterIndex !== index))}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-3 border-t pt-6">
+          <h3 className="text-lg font-semibold">Transkript</h3>
+          <Textarea
+            value={transcript}
+            onChange={(event) => setTranscript(event.target.value)}
+            rows={8}
+            placeholder="Video transkriptini buraya yapıştırın..."
+          />
+        </section>
+
+        <section className="space-y-4 border-t pt-6">
+          <div className="flex items-center gap-2">
+            <input
+              id="end-screen-enabled"
+              type="checkbox"
+              checked={endScreen.enabled}
+              onChange={(event) => setEndScreen({ ...endScreen, enabled: event.target.checked })}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="end-screen-enabled">Bitiş ekranını aktifleştir</Label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              value={endScreen.message}
+              onChange={(event) => setEndScreen({ ...endScreen, message: event.target.value })}
+              placeholder="Bitiş mesajı"
+            />
+            <Input
+              value={endScreen.buttonLabel}
+              onChange={(event) => setEndScreen({ ...endScreen, buttonLabel: event.target.value })}
+              placeholder="Buton etiketi"
+            />
+            <Input
+              value={endScreen.buttonUrl}
+              onChange={(event) => setEndScreen({ ...endScreen, buttonUrl: event.target.value })}
+              placeholder="Buton URL"
+            />
+          </div>
+        </section>
+
+        <Button onClick={saveLearningSettings} disabled={saving}>
+          {saving ? 'Kaydediliyor...' : 'Eğitim Ayarlarını Kaydet'}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }

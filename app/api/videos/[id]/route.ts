@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { videoPatchSchema } from '@/lib/validators/video'
+import { normalizeVideoSettingsForSave } from '@/lib/video/access'
 
 export async function GET(
   req: NextRequest,
@@ -59,7 +61,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const data = await req.json()
+    const parsed = videoPatchSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid payload', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const data = parsed.data
     const { id } = await params
     const { interactions, ...otherData } = data
 
@@ -84,6 +94,10 @@ export async function PATCH(
       ...(otherData.status === 'PUBLISHED' && !existingVideo.publishedAt
         ? { publishedAt: new Date() }
         : {}),
+    }
+
+    if ('settings' in updateData) {
+      updateData.settings = await normalizeVideoSettingsForSave(updateData.settings)
     }
 
     if (interactions) {

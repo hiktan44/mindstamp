@@ -34,6 +34,7 @@ model User {
   analytics     Analytics[]
   comments      Comment[]
   leads         Lead[]
+  viewerSessions ViewerSession[]
 
   @@index([email])
 }
@@ -152,6 +153,7 @@ model Video {
   // İlişkiler
   interactions     Interaction[]
   analytics        Analytics[]
+  viewerSessions   ViewerSession[]
   comments         Comment[]
   leads            Lead[]
   chapters         Chapter[]
@@ -200,6 +202,37 @@ model Interaction {
 // ANALYTICS VE RAPORLAMA
 // ============================================
 
+model ViewerSession {
+  id          String   @id @default(cuid())
+  videoId     String
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  viewerId    String
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  referrer    String?
+  userAgent   String?  @db.Text
+  device      String?
+  browser     String?
+  os          String?
+  country     String?
+  city        String?
+
+  startedAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  completedAt DateTime?
+
+  analytics   Analytics?
+  states      ViewerState[]
+  responses   QuestionResponse[]
+
+  @@unique([videoId, viewerId])
+  @@index([videoId])
+  @@index([viewerId])
+  @@index([userId])
+}
+
 model Analytics {
   id          String   @id @default(cuid())
   videoId     String
@@ -211,7 +244,8 @@ model Analytics {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Oturum bilgisi
-  sessionId   String?  // Oturum ID
+  sessionId   String?  @unique // Oturum ID
+  session     ViewerSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   startedAt   DateTime @default(now())
   completedAt DateTime?
 
@@ -229,6 +263,7 @@ model Analytics {
 
   // Etkileşim verileri
   interactions Json?   // Tıklanan etkileşimler
+  events       InteractionEvent[]
 
   @@index([videoId])
   @@index([viewerId])
@@ -238,15 +273,53 @@ model Analytics {
 model InteractionEvent {
   id          String   @id @default(cuid())
   analyticsId String?
+  analytics   Analytics? @relation(fields: [analyticsId], references: [id], onDelete: SetNull)
   interactionId String?
 
   eventType   String   // click, view, submit, etc.
   data        Json?
+  viewerId    String?
+  sessionId   String?
+  videoId     String?
 
   createdAt   DateTime @default(now())
 
   @@index([analyticsId])
   @@index([interactionId])
+  @@index([videoId])
+  @@index([viewerId])
+  @@index([sessionId])
+}
+
+model ViewerState {
+  id            String   @id @default(cuid())
+  sessionId     String
+  session       ViewerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  interactionId String?
+  key           String
+  value         Json
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sessionId, key])
+  @@index([interactionId])
+}
+
+model QuestionResponse {
+  id            String   @id @default(cuid())
+  videoId       String
+  sessionId     String?
+  session       ViewerSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  interactionId String
+  viewerId      String?
+  answer        Json
+  isCorrect     Boolean?
+  score         Float?
+  createdAt     DateTime @default(now())
+
+  @@index([videoId])
+  @@index([sessionId])
+  @@index([interactionId])
+  @@index([viewerId])
 }
 
 // ============================================

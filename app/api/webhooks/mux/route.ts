@@ -7,9 +7,8 @@ export async function POST(req: NextRequest) {
   try {
     const headersList = await headers()
     const muxSignature = headersList.get('mux-signature')
-    const muxTimestamp = headersList.get('mux-timestamp')
 
-    if (!muxSignature || !muxTimestamp) {
+    if (!muxSignature) {
       return NextResponse.json({ error: 'Missing signature headers' }, { status: 401 })
     }
 
@@ -17,7 +16,7 @@ export async function POST(req: NextRequest) {
     const payload = rawBody
 
     // Verify webhook signature
-    const isValid = verifyMuxWebhook(payload, muxSignature, muxTimestamp)
+    const isValid = verifyMuxWebhook(payload, muxSignature)
 
     if (!isValid) {
       console.error('Invalid Mux webhook signature')
@@ -40,6 +39,7 @@ export async function POST(req: NextRequest) {
         await handleAssetCreated(event.data)
         break
 
+      case 'video.upload.asset_created':
       case 'video.asset.upload.completed':
         await handleUploadCompleted(event.data)
         break
@@ -64,12 +64,9 @@ async function handleAssetReady(data: any) {
 
   console.log('Asset ready:', id)
 
-  // Update video in database when processing is complete
   await prisma.video.updateMany({
     where: {
-      // Find video by mux asset id - you need to store this during upload
-      // For now, we'll search for videos in PROCESSING status
-      status: 'PROCESSING',
+      muxAssetId: id,
     },
     data: {
       status: 'PUBLISHED',
@@ -83,9 +80,6 @@ async function handleAssetReady(data: any) {
       updatedAt: new Date(),
     },
   })
-
-  // TODO: Update specific video by muxAssetId
-  // You should add muxAssetId field to Video model
 }
 
 async function handleAssetErrored(data: any) {
@@ -96,8 +90,7 @@ async function handleAssetErrored(data: any) {
   // Update video status to failed
   await prisma.video.updateMany({
     where: {
-      // Find by mux asset id
-      status: 'PROCESSING',
+      muxAssetId: id,
     },
     data: {
       status: 'FAILED',
@@ -107,11 +100,29 @@ async function handleAssetErrored(data: any) {
 }
 
 async function handleAssetCreated(data: any) {
-  console.log('Asset created:', data.id)
+  const assetId = data.id
+  const uploadId = data.upload_id
+  console.log('Asset created:', assetId)
+
+  if (assetId && uploadId) {
+    await prisma.video.updateMany({
+      where: { muxUploadId: uploadId },
+      data: { muxAssetId: assetId, status: 'PROCESSING', updatedAt: new Date() },
+    })
+  }
 }
 
 async function handleUploadCompleted(data: any) {
-  console.log('Upload completed:', data.upload_id)
+  const uploadId = data.upload_id || data.id
+  const assetId = data.asset_id
+  console.log('Upload completed:', uploadId)
+
+  if (uploadId && assetId) {
+    await prisma.video.updateMany({
+      where: { muxUploadId: uploadId },
+      data: { muxAssetId: assetId, status: 'PROCESSING', updatedAt: new Date() },
+    })
+  }
 }
 
 async function handleStaticRenditionCreated(data: any) {

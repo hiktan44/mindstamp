@@ -108,17 +108,36 @@ export async function generateMuxThumbnail(assetId: string, time: number = 1) {
 export function verifyMuxWebhook(
   payload: string,
   signature: string,
-  timestamp: string
+  timestamp?: string
 ): boolean {
   const crypto = require('crypto')
+  const parts = Object.fromEntries(
+    signature.split(',').map((part) => {
+      const [key, value] = part.split('=')
+      return [key, value]
+    })
+  )
+  const signedTimestamp = timestamp || parts.t
+  const receivedSignature = parts.v1 || signature
 
-  const signedPayload = `${timestamp}.${payload}`
+  if (!muxWebhookSigningSecret || !signedTimestamp || !receivedSignature) {
+    return false
+  }
+
+  const signedPayload = `${signedTimestamp}.${payload}`
   const expectedSignature = crypto
     .createHmac('sha256', muxWebhookSigningSecret)
     .update(signedPayload)
     .digest('hex')
 
-  return signature === expectedSignature
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(receivedSignature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    )
+  } catch {
+    return false
+  }
 }
 
 // Get playback URL
