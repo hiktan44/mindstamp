@@ -120,6 +120,17 @@ export async function PATCH(
     const video = await prisma.video.update({
       where: { id },
       data: updateData,
+      include: {
+        interactions: {
+          orderBy: { startTime: 'asc' },
+        },
+        chapters: {
+          orderBy: { startTime: 'asc' },
+        },
+        captions: true,
+        transcripts: true,
+        endScreens: true,
+      },
     })
 
     return NextResponse.json({ video })

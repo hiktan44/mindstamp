@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useRef, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { VideoEditor } from '@/components/editor/editor-layout'
+import { VideoEditor, type VideoEditorHandle } from '@/components/editor/editor-layout'
 import {
   ArrowLeft,
   Save,
@@ -34,6 +34,9 @@ export default function VideoEditPage({
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('editor')
   const [hasChanges, setHasChanges] = useState(false)
+  const [editorHasChanges, setEditorHasChanges] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const editorRef = useRef<VideoEditorHandle>(null)
 
   useEffect(() => {
     fetchVideo()
@@ -55,6 +58,12 @@ export default function VideoEditPage({
   }
 
   const handleSave = async () => {
+    if (activeTab === 'editor') {
+      await editorRef.current?.save()
+      return
+    }
+
+    setSaving(true)
     try {
       const response = await fetch(`/api/videos/${params.id}`, {
         method: 'PATCH',
@@ -68,6 +77,8 @@ export default function VideoEditPage({
       // Show success toast
     } catch (error) {
       console.error('Save error:', error)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -129,9 +140,12 @@ export default function VideoEditPage({
               Önizle
             </Link>
           </Button>
-          <Button onClick={handleSave} disabled={!hasChanges}>
+          <Button
+            onClick={handleSave}
+            disabled={saving || (activeTab === 'editor' ? !editorHasChanges : !hasChanges)}
+          >
             <Save className="mr-2 h-4 w-4" />
-            {hasChanges ? 'Kaydet*' : 'Kaydedildi'}
+            {saving ? 'Kaydediliyor...' : (activeTab === 'editor' ? editorHasChanges : hasChanges) ? 'Kaydet*' : 'Kaydedildi'}
           </Button>
         </div>
       </div>
@@ -166,7 +180,17 @@ export default function VideoEditPage({
         </TabsList>
 
         <TabsContent value="editor" className="mt-6">
-          <VideoEditor videoId={params.id} initialVideo={video} />
+          <VideoEditor
+            ref={editorRef}
+            videoId={params.id}
+            initialVideo={video}
+            onDirtyChange={setEditorHasChanges}
+            onSaved={(savedVideo) => {
+              if (savedVideo) setVideo(savedVideo)
+              setEditorHasChanges(false)
+              setHasChanges(false)
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

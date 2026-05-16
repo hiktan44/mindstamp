@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react'
 import { VideoPlayer } from '@/components/player/video-player'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,7 +45,6 @@ import {
   Trash2,
   Copy,
   Eye,
-  Settings,
   MousePointerClick,
   Type,
   Image as ImageIcon,
@@ -76,6 +75,8 @@ interface VideoEditorProps {
     interactions?: Interaction[]
     design?: any
   }
+  onSaved?: (video: VideoEditorProps['initialVideo']) => void
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 const interactionTypes = [
@@ -95,14 +96,30 @@ const clickActions = [
   { value: 'PAUSE', label: 'Duraklat' },
 ]
 
-export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
+const fontFamilies = [
+  { value: 'Inter, sans-serif', label: 'Inter' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Georgia, serif', label: 'Georgia' },
+  { value: 'Times New Roman, serif', label: 'Times New Roman' },
+  { value: 'Courier New, monospace', label: 'Courier New' },
+]
+
+export type VideoEditorHandle = {
+  save: () => Promise<void>
+}
+
+export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(function VideoEditor(
+  { videoId, initialVideo, onSaved, onDirtyChange },
+  ref
+) {
   const [video, setVideo] = useState(initialVideo)
   const [interactions, setInteractions] = useState<Interaction[]>(initialVideo?.interactions || [])
   const [selectedInteraction, setSelectedInteraction] = useState<Interaction | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
@@ -146,7 +163,13 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
     }
   }, [dragInfo, selectedInteraction]);
 
+  useEffect(() => {
+    onDirtyChange?.(hasChanges)
+  }, [hasChanges, onDirtyChange])
+
   const handleSave = async () => {
+    setSaving(true)
+    setSaveMessage(null)
     try {
       const response = await fetch(`/api/videos/${videoId}`, {
         method: 'PATCH',
@@ -157,14 +180,29 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
         }),
       })
 
-      if (!response.ok) throw new Error('Kaydetme başarısız')
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Kaydetme başarısız')
+      }
 
+      if (payload?.video) {
+        setVideo(payload.video)
+        setInteractions(payload.video.interactions || interactions)
+        onSaved?.(payload.video)
+      }
       setHasChanges(false)
-      // Show success toast
+      setSaveMessage('Kaydedildi')
     } catch (error) {
       console.error('Save error:', error)
+      setSaveMessage(error instanceof Error ? error.message : 'Kaydetme başarısız')
+    } finally {
+      setSaving(false)
     }
   }
+
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+  }))
 
   const handleAddInteraction = (type: Interaction['type']) => {
     const newInteraction: Interaction = {
@@ -223,6 +261,9 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
             color: '#ffffff',
             borderRadius: 8,
             fontSize: 16,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 600,
+            textAlign: 'center',
           },
         }
       case 'HOTSPOT':
@@ -250,6 +291,10 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             color: '#ffffff',
             fontSize: 18,
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: 400,
+            textAlign: 'left',
+            borderRadius: 8,
           },
         }
       case 'IMAGE':
@@ -453,6 +498,9 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                         color: interaction.config.style?.color,
                         borderRadius: `${interaction.config.style?.borderRadius}px`,
                         fontSize: `${interaction.config.style?.fontSize}px`,
+                        fontFamily: interaction.config.style?.fontFamily,
+                        fontWeight: interaction.config.style?.fontWeight,
+                        textAlign: interaction.config.style?.textAlign,
                       }}
                     >
                       {interaction.config.text}
@@ -466,6 +514,10 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                         backgroundColor: interaction.config.style?.backgroundColor,
                         color: interaction.config.style?.color,
                         fontSize: `${interaction.config.style?.fontSize}px`,
+                        fontFamily: interaction.config.style?.fontFamily,
+                        fontWeight: interaction.config.style?.fontWeight,
+                        textAlign: interaction.config.style?.textAlign,
+                        borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
                       }}
                     >
                       {interaction.config.text}
@@ -536,10 +588,18 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
           <Button
             variant={hasChanges ? 'default' : 'outline'}
             onClick={handleSave}
-            disabled={!hasChanges}
+            disabled={!hasChanges || saving}
           >
-            {hasChanges ? 'Kaydet*' : 'Kaydedildi'}
+            {saving ? 'Kaydediliyor...' : hasChanges ? 'Kaydet*' : 'Kaydedildi'}
           </Button>
+          {saveMessage && (
+            <span className={cn(
+              'text-xs',
+              saveMessage === 'Kaydedildi' ? 'text-green-600' : 'text-destructive'
+            )}>
+              {saveMessage}
+            </span>
+          )}
 
           <Dialog>
             <DialogTrigger>
@@ -553,9 +613,9 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
                 <DialogTitle>Video Önizleme</DialogTitle>
               </DialogHeader>
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                <VideoPlayer
-                  src={video?.hlsUrl || video?.videoUrl || ''}
-                  poster={video?.thumbnailUrl}
+                <EditorPreview
+                  video={video}
+                  interactions={interactions}
                 />
               </div>
             </DialogContent>
@@ -591,7 +651,7 @@ export function VideoEditor({ videoId, initialVideo }: VideoEditorProps) {
       </div>
     </div>
   )
-}
+})
 
 function InteractionSettings({
   interaction,
@@ -658,6 +718,31 @@ function InteractionSettings({
                 </SelectContent>
               </Select>
             </div>
+            <ActionFields interaction={interaction} updateConfig={updateConfig} />
+          </>
+        )}
+
+        {interaction.type === 'HOTSPOT' && (
+          <>
+            <div className="space-y-2">
+              <Label>Tıklama Eylemi</Label>
+              <Select
+                value={interaction.config.action || 'CONTINUE'}
+                onValueChange={(value) => updateConfig('action', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {clickActions.map((action) => (
+                    <SelectItem key={action.value} value={action.value}>
+                      {action.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <ActionFields interaction={interaction} updateConfig={updateConfig} />
           </>
         )}
 
@@ -789,14 +874,77 @@ function InteractionSettings({
         )}
 
         {interaction.type === 'TEXT' && (
-          <div className="space-y-2">
-            <Label>Font Boyutu (px)</Label>
-            <Input
-              type="number"
-              value={interaction.config.style?.fontSize || 18}
-              onChange={(e) => updateStyle('fontSize', parseInt(e.target.value))}
-            />
-          </div>
+          <>
+            <div className="space-y-2">
+              <Label>Font</Label>
+              <Select
+                value={interaction.config.style?.fontFamily || 'Inter, sans-serif'}
+                onValueChange={(value) => updateStyle('fontFamily', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontFamilies.map((font) => (
+                    <SelectItem key={font.value} value={font.value}>
+                      {font.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Font Boyutu (px)</Label>
+                <Input
+                  type="number"
+                  value={interaction.config.style?.fontSize || 18}
+                  onChange={(e) => updateStyle('fontSize', parseInt(e.target.value) || 18)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kalınlık</Label>
+                <Select
+                  value={String(interaction.config.style?.fontWeight || 400)}
+                  onValueChange={(value) => updateStyle('fontWeight', Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="300">İnce</SelectItem>
+                    <SelectItem value="400">Normal</SelectItem>
+                    <SelectItem value="600">Kalın</SelectItem>
+                    <SelectItem value="700">Ekstra Kalın</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Hizalama</Label>
+              <Select
+                value={interaction.config.style?.textAlign || 'left'}
+                onValueChange={(value) => updateStyle('textAlign', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Sol</SelectItem>
+                  <SelectItem value="center">Orta</SelectItem>
+                  <SelectItem value="right">Sağ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Kenar Yarıçapı (px)</Label>
+              <Input
+                type="number"
+                value={interaction.config.style?.borderRadius || 8}
+                onChange={(e) => updateStyle('borderRadius', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </>
         )}
       </TabsContent>
 
@@ -863,6 +1011,179 @@ function InteractionSettings({
         </div>
       </TabsContent>
     </Tabs>
+  )
+}
+
+function ActionFields({
+  interaction,
+  updateConfig,
+}: {
+  interaction: Interaction
+  updateConfig: (key: string, value: any) => void
+}) {
+  const action = interaction.config.action || 'CONTINUE'
+
+  if (action === 'OPEN_LINK' || action === 'REDIRECT_LINK') {
+    return (
+      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+        <Label>Link URL</Label>
+        <Input
+          value={interaction.config.url || interaction.config.linkUrl || ''}
+          onChange={(e) => updateConfig('url', e.target.value)}
+          placeholder="https://example.com"
+        />
+        <p className="text-xs text-muted-foreground">
+          İzleyici tıkladığında bu bağlantı açılır.
+        </p>
+      </div>
+    )
+  }
+
+  if (action === 'CHANGE_TIME') {
+    return (
+      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+        <Label>Gidilecek Zaman (saniye)</Label>
+        <Input
+          type="number"
+          step="0.1"
+          value={interaction.config.targetTime ?? ''}
+          onChange={(e) => updateConfig('targetTime', e.target.value ? Number(e.target.value) : undefined)}
+          placeholder="45"
+        />
+      </div>
+    )
+  }
+
+  if (action === 'SWITCH_VIDEO') {
+    return (
+      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+        <Label>Geçilecek Video ID</Label>
+        <Input
+          value={interaction.config.switchVideoId || ''}
+          onChange={(e) => updateConfig('switchVideoId', e.target.value)}
+          placeholder="video-id"
+        />
+      </div>
+    )
+  }
+
+  if (action === 'SHOW_MESSAGE') {
+    return (
+      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+        <Label>Mesaj</Label>
+        <Textarea
+          value={interaction.config.message || ''}
+          onChange={(e) => updateConfig('message', e.target.value)}
+          placeholder="İzleyiciye gösterilecek mesaj"
+        />
+      </div>
+    )
+  }
+
+  return null
+}
+
+function EditorPreview({
+  video,
+  interactions,
+}: {
+  video: VideoEditorProps['initialVideo']
+  interactions: Interaction[]
+}) {
+  const [previewTime, setPreviewTime] = useState(0)
+  const visibleInteractions = interactions.filter((interaction) => {
+    if (interaction.endTime) {
+      return previewTime >= interaction.startTime && previewTime <= interaction.endTime
+    }
+    return previewTime >= interaction.startTime
+  })
+
+  return (
+    <div className="relative h-full w-full">
+      <VideoPlayer
+        src={video?.hlsUrl || video?.videoUrl || ''}
+        poster={video?.thumbnailUrl}
+        onTimeUpdate={setPreviewTime}
+      />
+      <div className="pointer-events-none absolute inset-0">
+        {visibleInteractions.map((interaction) => {
+          if (!interaction.position) return null
+
+          return (
+            <div
+              key={interaction.id}
+              className="absolute"
+              style={{
+                left: `${interaction.position.x}%`,
+                top: `${interaction.position.y}%`,
+                width: `${interaction.position.width}px`,
+                height: `${interaction.position.height}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {interaction.type === 'BUTTON' && (
+                <div
+                  className="flex h-full w-full items-center justify-center shadow-md"
+                  style={{
+                    backgroundColor: interaction.config.style?.backgroundColor || '#3b82f6',
+                    color: interaction.config.style?.color || '#ffffff',
+                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
+                    fontSize: `${interaction.config.style?.fontSize || 16}px`,
+                    fontFamily: interaction.config.style?.fontFamily,
+                    fontWeight: interaction.config.style?.fontWeight,
+                    textAlign: interaction.config.style?.textAlign || 'center',
+                  }}
+                >
+                  {interaction.config.text}
+                </div>
+              )}
+
+              {interaction.type === 'TEXT' && (
+                <div
+                  className="h-full w-full p-3"
+                  style={{
+                    backgroundColor: interaction.config.style?.backgroundColor || 'rgba(0, 0, 0, 0.7)',
+                    color: interaction.config.style?.color || '#ffffff',
+                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
+                    fontSize: `${interaction.config.style?.fontSize || 18}px`,
+                    fontFamily: interaction.config.style?.fontFamily,
+                    fontWeight: interaction.config.style?.fontWeight,
+                    textAlign: interaction.config.style?.textAlign || 'left',
+                  }}
+                >
+                  {interaction.config.text}
+                </div>
+              )}
+
+              {interaction.type === 'HOTSPOT' && (
+                <div
+                  className="h-full w-full animate-pulse rounded-full border-2"
+                  style={{
+                    borderColor: interaction.config.style?.borderColor || '#3b82f6',
+                    backgroundColor: interaction.config.style?.backgroundColor || 'rgba(59, 130, 246, 0.3)',
+                  }}
+                />
+              )}
+
+              {interaction.type === 'IMAGE' && interaction.config.url && (
+                <img
+                  src={interaction.config.url}
+                  alt={interaction.config.alt || ''}
+                  className="h-full w-full object-contain"
+                  style={{ opacity: (interaction.config.opacity || 100) / 100 }}
+                />
+              )}
+
+              {interaction.type === 'QUESTION' && (
+                <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
+                  {interaction.config.question || 'Soru'}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

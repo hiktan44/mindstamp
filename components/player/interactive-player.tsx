@@ -507,6 +507,9 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                     color: interaction.config.style?.color || '#ffffff',
                     borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
                     fontSize: `${interaction.config.style?.fontSize || 16}px`,
+                    fontFamily: interaction.config.style?.fontFamily,
+                    fontWeight: interaction.config.style?.fontWeight,
+                    textAlign: interaction.config.style?.textAlign || 'center',
                   }}
                 >
                   {interaction.config.text}
@@ -520,7 +523,10 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                     backgroundColor: interaction.config.style?.backgroundColor || 'rgba(0,0,0,0.7)',
                     color: interaction.config.style?.color || '#ffffff',
                     fontSize: `${interaction.config.style?.fontSize || 18}px`,
-                    borderRadius: '8px',
+                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
+                    fontFamily: interaction.config.style?.fontFamily,
+                    fontWeight: interaction.config.style?.fontWeight,
+                    textAlign: interaction.config.style?.textAlign || 'left',
                   }}
                 >
                   {interaction.config.text}
