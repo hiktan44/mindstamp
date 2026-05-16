@@ -3,34 +3,49 @@ import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Folder, FolderOpen, Video as VideoIcon } from 'lucide-react'
 import Link from 'next/link'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { redirect } from 'next/navigation'
+
+type FolderVideo = {
+  id: string
+  title: string
+  folderId: string | null
+  thumbnailUrl: string | null
+}
 
 export default async function FoldersPage() {
   const session = await auth()
   
   if (!session?.user?.id) {
-    return <div>Oturum bulunamadı.</div>
+    redirect('/giris?callbackUrl=/dashboard/folders')
   }
 
-  // Kullanıcının videolarını al ve klasör ismine göre grupla
-  const videos = await prisma.video.findMany({
-    where: { userId: session.user.id },
-    select: {
-      id: true,
-      title: true,
-      folderId: true,
-      thumbnailUrl: true
-    },
-    orderBy: { createdAt: 'desc' }
-  })
+  let videos: FolderVideo[] = []
+  let dataError = false
+
+  try {
+    videos = await prisma.video.findMany({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        title: true,
+        folderId: true,
+        thumbnailUrl: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  } catch (error) {
+    console.error('Folders dashboard data load failed:', error)
+    dataError = true
+  }
 
   // Klasörleri belleke üzerinde grupla
   const groupedFolders: Record<string, typeof videos> = {
     'Genel': [] // Klasörü olmayanlar
   }
 
-  videos.forEach((video: any) => {
+  videos.forEach((video) => {
     const folderName = video.folderId && video.folderId.trim() !== '' ? video.folderId : 'Genel'
     if (!groupedFolders[folderName]) {
       groupedFolders[folderName] = []
@@ -49,7 +64,17 @@ export default async function FoldersPage() {
         </p>
       </div>
 
-      {videos.length === 0 ? (
+      {dataError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center border-t">
+            <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Klasör verileri yüklenemedi</h3>
+            <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
+              Sayfa açıldı fakat video klasörleri alınırken geçici bir hata oluştu.
+            </p>
+          </CardContent>
+        </Card>
+      ) : videos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center p-12 text-center border-t">
             <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -78,7 +103,7 @@ export default async function FoldersPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-4">
-                  {folderVideos.slice(0, 3).map((v: any) => (
+                  {folderVideos.slice(0, 3).map((v) => (
                     <Link key={v.id} href={`/dashboard/videos/${v.id}/edit`} className="flex items-center gap-3 hover:bg-muted/50 p-2 rounded-md transition-colors">
                       <div className="bg-muted w-10 h-10 rounded-sm flex items-center justify-center shrink-0 overflow-hidden">
                         {v.thumbnailUrl ? (

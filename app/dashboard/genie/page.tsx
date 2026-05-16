@@ -3,46 +3,65 @@ import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Sparkles, MessageSquare, ListVideo } from 'lucide-react'
 import Link from 'next/link'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { redirect } from 'next/navigation'
+
+type ReadyVideo = {
+  id: string
+  title: string
+  thumbnailUrl: string | null
+  createdAt: Date
+}
 
 export default async function GenieAIPage() {
   const session = await auth()
   
   if (!session?.user?.id) {
-    return <div>Oturum bulunamadı.</div>
+    redirect('/giris?callbackUrl=/dashboard/genie')
   }
 
-  // AI transkripti olan videoları bul (Genie AI'a hazır)
-  const readyVideos = await prisma.video.findMany({
-    where: { 
-      userId: session.user.id,
-      transcripts: {
-        some: {
-          isAiGenerated: true
-        }
-      }
-    },
-    select: {
-      id: true,
-      title: true,
-      thumbnailUrl: true,
-      createdAt: true
-    },
-    orderBy: { createdAt: 'desc' }
-  })
+  let readyVideos: ReadyVideo[] = []
+  let pendingVideos = 0
+  let dataError = false
 
-  // Yüklenmiş ama AI transkripti olmayan videolar
-  const pendingVideos = await prisma.video.count({
-    where: { 
-      userId: session.user.id,
-      transcripts: {
-        none: {
-          isAiGenerated: true
+  try {
+    const [readyResult, pendingResult] = await Promise.all([
+      prisma.video.findMany({
+        where: {
+          userId: session.user.id,
+          transcripts: {
+            some: {
+              isAiGenerated: true
+            }
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          thumbnailUrl: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.video.count({
+        where: {
+          userId: session.user.id,
+          transcripts: {
+            none: {
+              isAiGenerated: true
+            }
+          }
         }
-      }
-    }
-  })
+      })
+    ])
+
+    readyVideos = readyResult
+    pendingVideos = pendingResult
+  } catch (error) {
+    console.error('Genie dashboard data load failed:', error)
+    dataError = true
+  }
 
   return (
     <div className="space-y-6">
@@ -77,7 +96,7 @@ export default async function GenieAIPage() {
               İşlem Bekleyenler
             </CardTitle>
             <CardDescription>
-              Genie AI'ın yanıt verebilmesi için, videoların içeriğini bilmesi gerekir.
+              Genie AI&apos;ın yanıt verebilmesi için, videoların içeriğini bilmesi gerekir.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -86,7 +105,7 @@ export default async function GenieAIPage() {
           </CardContent>
           <CardFooter>
             <Link href="/dashboard/videos" className={cn(buttonVariants({ variant: 'outline' }), "w-full")}>
-              Videolarım'a Git
+              Videolarım&apos;a Git
             </Link>
           </CardFooter>
         </Card>
@@ -94,19 +113,29 @@ export default async function GenieAIPage() {
 
       <h3 className="text-xl font-bold mt-8 mb-4">Genie AI Aktif Videolar</h3>
       
-      {readyVideos.length === 0 ? (
+      {dataError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center border-t">
+            <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium">Genie AI verileri yüklenemedi</h3>
+            <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
+              Sayfa açıldı fakat video/transkript verileri alınırken geçici bir hata oluştu.
+            </p>
+          </CardContent>
+        </Card>
+      ) : readyVideos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center p-12 text-center border-t">
             <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium">Genie AI aktif video bulunamadı</h3>
             <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
-              Videolarınızı düzenleyip "Transkript Ekle" veya "Otomatik Altyazı Oluştur" seçeneğiyle Genie AI'ı aktif hale getirebilirsiniz.
+              Videolarınızı düzenleyip &quot;Transkript Ekle&quot; veya &quot;Otomatik Altyazı Oluştur&quot; seçeneğiyle Genie AI&apos;ı aktif hale getirebilirsiniz.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {readyVideos.map((v: any) => (
+          {readyVideos.map((v) => (
             <Card key={v.id} className="flex flex-col overflow-hidden">
               <div className="bg-muted aspect-video w-full overflow-hidden border-b relative">
                 {v.thumbnailUrl ? (
