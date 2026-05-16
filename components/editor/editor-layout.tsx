@@ -120,6 +120,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [interactionFilter, setInteractionFilter] = useState<'ALL' | Interaction['type']>('ALL')
 
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
@@ -240,6 +241,15 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
     setHasChanges(true)
   }
 
+  const handleSeekToInteraction = (interaction: Interaction) => {
+    const video = document.querySelector('video')
+    if (video) {
+      video.currentTime = interaction.startTime
+    }
+    setCurrentTime(interaction.startTime)
+    setSelectedInteraction(interaction)
+  }
+
   const handleUpdateInteraction = (id: string, updates: Partial<Interaction>) => {
     setInteractions(
       interactions.map((i) => (i.id === id ? { ...i, ...updates } : i))
@@ -317,12 +327,16 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
     })
   }
 
+  const filteredInteractions = interactions.filter((interaction) => {
+    return interactionFilter === 'ALL' || interaction.type === interactionFilter
+  })
+
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="grid min-h-[calc(100vh-8rem)] gap-4 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
       {/* Left Panel - Interactions List */}
-      <div className="w-80 overflow-y-auto">
+      <div className="min-h-0">
         <Card className="h-full">
-          <CardHeader>
+          <CardHeader className="space-y-3">
             <CardTitle className="flex items-center justify-between">
               Etkileşimler
               <Badge variant="secondary">{interactions.length}</Badge>
@@ -330,6 +344,20 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             <CardDescription>
               Video üzerine etkileşimli öğeler ekleyin
             </CardDescription>
+            <div className="grid grid-cols-5 gap-1">
+              {interactionTypes.map((item) => (
+                <Button
+                  key={item.type}
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  title={`${item.label} ekle`}
+                  onClick={() => handleAddInteraction(item.type as Interaction['type'])}
+                >
+                  <item.icon className="h-4 w-4" />
+                </Button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add New Interaction */}
@@ -376,63 +404,110 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
 
             <Separator />
 
+            <div className="space-y-2">
+              <Label>Filtre</Label>
+              <Select
+                value={interactionFilter}
+                onValueChange={(value) => setInteractionFilter(value as typeof interactionFilter)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tümü</SelectItem>
+                  {interactionTypes.map((item) => (
+                    <SelectItem key={item.type} value={item.type}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Interactions Timeline */}
             <div className="space-y-2">
               <Label>Timeline ({formatTime(currentTime)})</Label>
-              <div className="space-y-1">
-                {interactions.map((interaction) => (
+              <div className="space-y-2">
+                {filteredInteractions.length === 0 && (
+                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                    Bu filtrede etkileşim yok.
+                  </div>
+                )}
+                {filteredInteractions.map((interaction) => (
                   <div
                     key={interaction.id}
                     className={cn(
-                      'flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors',
+                      'rounded-lg border p-2 cursor-pointer transition-colors',
                       selectedInteraction?.id === interaction.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border hover:bg-muted'
                     )}
                     onClick={() => setSelectedInteraction(interaction)}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {interactionTypes.find((t) => t.type === interaction.type)?.icon && (
-                          React.createElement(
-                            interactionTypes.find((t) => t.type === interaction.type)?.icon!,
-                            { className: 'h-4 w-4 shrink-0' }
-                          )
+                    <div className="flex items-start gap-2">
+                      <div className="mt-0.5">
+                        {React.createElement(
+                          interactionTypes.find((t) => t.type === interaction.type)?.icon || Layers,
+                          { className: 'h-4 w-4 shrink-0 text-muted-foreground' }
                         )}
-                        <span className="font-medium truncate">
-                          {interaction.config.text ||
-                           interaction.config.question ||
-                           interactionTypes.find((t) => t.type === interaction.type)?.label}
-                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatTime(interaction.startTime)}
-                        {interaction.endTime && ` - ${formatTime(interaction.endTime)}`}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium">
+                            {interaction.config.text ||
+                             interaction.config.question ||
+                             interactionTypes.find((t) => t.type === interaction.type)?.label}
+                          </span>
+                          <Badge variant="outline" className="shrink-0 text-[10px]">
+                            {interactionTypes.find((t) => t.type === interaction.type)?.label}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {formatTime(interaction.startTime)}
+                            {interaction.endTime && ` - ${formatTime(interaction.endTime)}`}
+                          </span>
+                          <span>{Math.round(interaction.position?.width || 0)}x{Math.round(interaction.position?.height || 0)}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDuplicateInteraction(interaction)
-                        }}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteInteraction(interaction.id)
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="flex shrink-0 gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Bu zamana git"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSeekToInteraction(interaction)
+                          }}
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Kopyala"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDuplicateInteraction(interaction)
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Sil"
+                          className="h-7 w-7 text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteInteraction(interaction.id)
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -443,8 +518,23 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       </div>
 
       {/* Center - Video Preview */}
-      <div className="flex-1 flex flex-col">
-        <div ref={containerRef} className="flex-1 relative bg-black rounded-lg overflow-hidden">
+      <div className="min-w-0 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-3">
+          <div>
+            <div className="text-sm font-medium">Canvas</div>
+            <div className="text-xs text-muted-foreground">
+              {selectedInteraction ? 'Seçili öğeyi sürükleyerek konumlandırın.' : 'Etkileşim seçin veya hızlı ekleme butonlarını kullanın.'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={hasChanges ? 'default' : 'secondary'}>
+              {hasChanges ? 'Kaydedilmemiş değişiklik' : 'Kaydedildi'}
+            </Badge>
+            <Badge variant="outline">{formatTime(currentTime)}</Badge>
+          </div>
+        </div>
+
+        <div ref={containerRef} className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <VideoPlayer
             src={video?.hlsUrl || video?.videoUrl || ''}
             poster={video?.thumbnailUrl}
@@ -533,6 +623,21 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
                       }}
                     />
                   )}
+
+                  {interaction.type === 'IMAGE' && interaction.config.url && (
+                    <img
+                      src={interaction.config.url}
+                      alt={interaction.config.alt || ''}
+                      className="h-full w-full object-contain"
+                      style={{ opacity: (interaction.config.opacity || 100) / 100 }}
+                    />
+                  )}
+
+                  {interaction.type === 'QUESTION' && (
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
+                      {interaction.config.question || 'Soru'}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -540,7 +645,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
         </div>
 
         {/* Video Controls */}
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="icon"
             variant="outline"
@@ -624,21 +729,29 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       </div>
 
       {/* Right Panel - Settings */}
-      <div className="w-96 overflow-y-auto">
+      <div className="min-h-0">
         <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Ayarlar</CardTitle>
+          <CardHeader className="space-y-2">
+            <CardTitle className="flex items-center justify-between">
+              Ayarlar
+              {selectedInteraction && (
+                <Badge variant="outline">
+                  {interactionTypes.find((t) => t.type === selectedInteraction.type)?.label}
+                </Badge>
+              )}
+            </CardTitle>
             <CardDescription>
               {selectedInteraction
                 ? 'Etkileşim ayarlarını düzenleyin'
                 : 'Düzenlemek için bir etkileşim seçin'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="max-h-[calc(100vh-14rem)] overflow-y-auto">
             {selectedInteraction ? (
               <InteractionSettings
                 interaction={selectedInteraction}
                 onChange={(updates) => handleUpdateInteraction(selectedInteraction.id, updates)}
+                currentTime={currentTime}
               />
             ) : (
               <div className="text-center text-muted-foreground py-8">
@@ -656,9 +769,11 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
 function InteractionSettings({
   interaction,
   onChange,
+  currentTime,
 }: {
   interaction: Interaction
   onChange: (updates: Partial<Interaction>) => void
+  currentTime: number
 }) {
   const updateConfig = (key: string, value: any) => {
     onChange({
@@ -951,23 +1066,41 @@ function InteractionSettings({
       <TabsContent value="timing" className="space-y-4">
         <div className="space-y-2">
           <Label>Başlangıç Zamanı (saniye)</Label>
-          <Input
-            type="number"
-            step="0.1"
-            value={interaction.startTime}
-            onChange={(e) => onChange({ startTime: parseFloat(e.target.value) })}
-          />
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              value={interaction.startTime}
+              onChange={(e) => onChange({ startTime: parseFloat(e.target.value) })}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onChange({ startTime: Number(currentTime.toFixed(1)) })}
+            >
+              Şimdi
+            </Button>
+          </div>
         </div>
         <div className="space-y-2">
           <Label>Bitiş Zamanı (saniye)</Label>
-          <Input
-            type="number"
-            step="0.1"
-            value={interaction.endTime || ''}
-            onChange={(e) =>
-              onChange({ endTime: e.target.value ? parseFloat(e.target.value) : undefined })
-            }
-          />
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              step="0.1"
+              value={interaction.endTime || ''}
+              onChange={(e) =>
+                onChange({ endTime: e.target.value ? parseFloat(e.target.value) : undefined })
+              }
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onChange({ endTime: Number(currentTime.toFixed(1)) })}
+            >
+              Şimdi
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Boş bırakırsanız etkileşim sonsuza kadar görünür
           </p>
@@ -1008,6 +1141,22 @@ function InteractionSettings({
               onChange={(e) => updatePosition('height', parseFloat(e.target.value))}
             />
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onChange({ position: { ...(interaction.position || { width: 200, height: 50 }), x: 50, y: 50 } })}
+          >
+            Ortala
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onChange({ position: { x: 50, y: 50, width: 320, height: interaction.type === 'TEXT' ? 120 : 64 } })}
+          >
+            Geniş Kart
+          </Button>
         </div>
       </TabsContent>
     </Tabs>
