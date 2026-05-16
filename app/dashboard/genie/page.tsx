@@ -3,8 +3,6 @@ import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Sparkles, MessageSquare, ListVideo } from 'lucide-react'
 import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { redirect } from 'next/navigation'
 
 type ReadyVideo = {
@@ -13,6 +11,12 @@ type ReadyVideo = {
   thumbnailUrl: string | null
   createdAt: Date
 }
+
+const outlineLinkClass =
+  "inline-flex h-8 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium transition-all hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+
+const secondaryLinkClass =
+  "inline-flex h-8 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-secondary px-2.5 text-sm font-medium text-secondary-foreground transition-all hover:bg-secondary/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
 export default async function GenieAIPage() {
   const session = await auth()
@@ -104,7 +108,7 @@ export default async function GenieAIPage() {
             <p className="text-sm text-muted-foreground">Videonuz için metin dökümü (Transkript) çıkarılması bekleniyor.</p>
           </CardContent>
           <CardFooter>
-            <Link href="/dashboard/videos" className={cn(buttonVariants({ variant: 'outline' }), "w-full")}>
+            <Link href="/dashboard/videos" className={outlineLinkClass}>
               Videolarım&apos;a Git
             </Link>
           </CardFooter>
@@ -157,7 +161,7 @@ export default async function GenieAIPage() {
                 </CardDescription>
               </CardHeader>
               <CardFooter className="px-4 pb-4 pt-0">
-                <Link href={`/dashboard/videos/${v.id}/edit`} className={cn(buttonVariants({ variant: 'secondary' }), "w-full")}>
+                <Link href={`/dashboard/videos/${v.id}/edit`} className={secondaryLinkClass}>
                   AI Karakterini Özelleştir
                 </Link>
               </CardFooter>

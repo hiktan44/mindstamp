@@ -3,8 +3,6 @@ import { prisma } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Folder, FolderOpen, Video as VideoIcon } from 'lucide-react'
 import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { redirect } from 'next/navigation'
 
 type FolderVideo = {
@@ -13,6 +11,12 @@ type FolderVideo = {
   folderId: string | null
   thumbnailUrl: string | null
 }
+
+const primaryLinkClass =
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+
+const outlineLinkClass =
+  "inline-flex h-8 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium transition-all hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
 export default async function FoldersPage() {
   const session = await auth()
@@ -82,7 +86,7 @@ export default async function FoldersPage() {
             <p className="text-sm text-muted-foreground mt-1 text-center max-w-sm">
               Sistemde hiç video bulunmadığı için klasör özelliği devre dışı. İlk videonuzu yükleyerek başlayabilirsiniz.
             </p>
-            <Link href="/dashboard/videos/new" className={cn(buttonVariants(), "mt-4")}>
+            <Link href="/dashboard/videos/new" className={`${primaryLinkClass} mt-4`}>
               Video Yükle
             </Link>
           </CardContent>
@@ -124,7 +128,7 @@ export default async function FoldersPage() {
                   )}
                 </CardContent>
                 <CardFooter className="pt-4 border-t">
-                  <Link href={`/dashboard/videos?folderId=${encodeURIComponent(folderName)}`} className={cn(buttonVariants({ variant: 'outline' }), "w-full")}>
+                  <Link href={`/dashboard/videos?folderId=${encodeURIComponent(folderName)}`} className={outlineLinkClass}>
                       Tümünü Gör
                   </Link>
                 </CardFooter>
