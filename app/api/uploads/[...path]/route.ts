@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { join } from 'path'
+import { resolve, sep } from 'path'
 import { readFile, stat } from 'fs/promises'
 import { createReadStream } from 'fs'
+import { Readable } from 'stream'
 
 export async function GET(
   req: NextRequest,
@@ -9,7 +10,12 @@ export async function GET(
 ) {
   try {
     const { path } = await params
-    const filePath = join(process.cwd(), 'public', 'uploads', ...path)
+    const uploadsRoot = resolve(process.cwd(), 'public', 'uploads')
+    const filePath = resolve(uploadsRoot, ...path)
+
+    if (filePath !== uploadsRoot && !filePath.startsWith(`${uploadsRoot}${sep}`)) {
+      return new NextResponse('Not found', { status: 404 })
+    }
 
     // Check if file exists
     try {
@@ -43,7 +49,7 @@ export async function GET(
       if (range) {
         const parts = range.replace(/bytes=/, '').split('-')
         const start = parseInt(parts[0], 10)
-        let end = parts[1] ? parseInt(parts[1], 10) : fileStat.size - 1
+        const end = parts[1] ? parseInt(parts[1], 10) : fileStat.size - 1
 
         if (start >= fileStat.size || end >= fileStat.size) {
           return new NextResponse('Requested range not satisfiable', {
@@ -55,7 +61,7 @@ export async function GET(
         const chunkSize = (end - start) + 1
         const fileStream = createReadStream(filePath, { start, end })
 
-        return new NextResponse(fileStream as any, {
+        return new NextResponse(Readable.toWeb(fileStream) as ReadableStream<Uint8Array>, {
           status: 206,
           headers: {
             'Content-Range': `bytes ${start}-${end}/${fileStat.size}`,
@@ -78,7 +84,7 @@ export async function GET(
           'Content-Length': fileStat.size.toString()
         }
       })
-    } catch (e) {
+    } catch {
       return new NextResponse('File not found', { status: 404 })
     }
   } catch (error) {

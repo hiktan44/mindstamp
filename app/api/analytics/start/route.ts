@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { analyticsStartSchema } from '@/lib/validators/analytics'
+import { canWatchVideo } from '@/lib/video/access'
 
 function detectDevice(userAgent: string | null) {
   const ua = userAgent || ''
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
   const video = await prisma.video.findUnique({ where: { id: parsed.data.videoId } })
   if (!video) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+  }
+
+  const access = await canWatchVideo(video, session?.user?.id)
+  if (!access.allowed) {
+    return NextResponse.json({ error: 'Video is not available' }, { status: 403 })
   }
 
   const existingSession = await prisma.viewerSession.findUnique({
@@ -99,11 +105,11 @@ export async function POST(req: NextRequest) {
 
   response.cookies.set('mindstamp_viewer_id', viewerId, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 60 * 60 * 24 * 365,
   })
 
   return response
 }
-

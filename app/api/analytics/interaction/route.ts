@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { interactionEventSchema } from '@/lib/validators/analytics'
+import { validateAnalyticsAccess } from '@/lib/analytics/guard'
 
-function getQuestionScore(data: Record<string, any> | null | undefined) {
+function getQuestionScore(data: Record<string, unknown> | null | undefined) {
   if (!data || typeof data.isCorrect !== 'boolean') return null
   return data.isCorrect ? 1 : 0
 }
@@ -14,9 +15,22 @@ export async function POST(req: NextRequest) {
   }
 
   const { analyticsId, sessionId, videoId, interactionId, eventType, data } = parsed.data
-  const analytics = analyticsId
-    ? await prisma.analytics.findUnique({ where: { id: analyticsId }, select: { viewerId: true } })
-    : null
+  if (!analyticsId) {
+    return NextResponse.json({ error: 'Analytics session is required' }, { status: 400 })
+  }
+
+  const analytics = await validateAnalyticsAccess(req, { analyticsId, videoId, sessionId })
+  if (!analytics) {
+    return NextResponse.json({ error: 'Analytics session not found' }, { status: 404 })
+  }
+
+  const interaction = await prisma.interaction.findFirst({
+    where: { id: interactionId, videoId },
+    select: { id: true },
+  })
+  if (!interaction) {
+    return NextResponse.json({ error: 'Interaction not found' }, { status: 404 })
+  }
 
   await prisma.interactionEvent.create({
     data: {
