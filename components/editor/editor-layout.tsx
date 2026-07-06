@@ -50,12 +50,22 @@ import {
   Image as ImageIcon,
   HelpCircle,
   Layers,
+  Film,
+  MapPin,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Upload,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Interaction {
   id: string
-  type: 'BUTTON' | 'HOTSPOT' | 'QUESTION' | 'TEXT' | 'IMAGE'
+  type: 'BUTTON' | 'HOTSPOT' | 'QUESTION' | 'TEXT' | 'IMAGE' | 'VIDEO_CLIP' | 'MAP'
   startTime: number
   endTime?: number
   config: any
@@ -83,8 +93,10 @@ const interactionTypes = [
   { type: 'BUTTON', label: 'Buton', icon: MousePointerClick, description: 'Tıklanabilir buton ekleyin' },
   { type: 'HOTSPOT', label: 'Hotspot', icon: Layers, description: 'Tıklanabilir alan ekleyin' },
   { type: 'QUESTION', label: 'Soru', icon: HelpCircle, description: 'Quiz/sınav sorusu ekleyin' },
-  { type: 'TEXT', label: 'Metin', icon: Type, description: 'Metin kutusu ekleyin' },
-  { type: 'IMAGE', label: 'Resim', icon: ImageIcon, description: 'Resim ekleyin' },
+  { type: 'TEXT', label: 'Metin', icon: Type, description: 'Renkli, stillendirilebilir metin ekleyin' },
+  { type: 'IMAGE', label: 'Resim', icon: ImageIcon, description: 'Resim yükleyin veya URL ekleyin' },
+  { type: 'VIDEO_CLIP', label: 'Video', icon: Film, description: 'Video klip yükleyin veya URL ekleyin' },
+  { type: 'MAP', label: 'Harita', icon: MapPin, description: 'Konum haritası ekleyin' },
 ]
 
 const clickActions = [
@@ -121,6 +133,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [interactionFilter, setInteractionFilter] = useState<'ALL' | Interaction['type']>('ALL')
+  const [addOpen, setAddOpen] = useState(false)
 
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
@@ -172,11 +185,28 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
     setSaving(true)
     setSaveMessage(null)
     try {
+      // Sanitize numeric fields so a cleared input (NaN) never triggers a silent 400.
+      const num = (v: any, fallback: number) => (Number.isFinite(Number(v)) ? Number(v) : fallback)
+      const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
+      const sanitized = interactions.map((i) => ({
+        ...i,
+        startTime: num(i.startTime, 0),
+        endTime: i.endTime == null ? null : num(i.endTime, undefined as any),
+        position: i.position
+          ? {
+              x: clamp(num(i.position.x, 50), 0, 100),
+              y: clamp(num(i.position.y, 50), 0, 100),
+              width: Math.max(1, num(i.position.width, 200)),
+              height: Math.max(1, num(i.position.height, 50)),
+            }
+          : null,
+      }))
+
       const response = await fetch(`/api/videos/${videoId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          interactions,
+          interactions: sanitized,
           design: video?.design,
         }),
       })
@@ -205,13 +235,32 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
     save: handleSave,
   }))
 
+  const getDefaultSize = (type: Interaction['type']) => {
+    switch (type) {
+      case 'TEXT':
+        return { width: 340, height: 90 }
+      case 'IMAGE':
+        return { width: 280, height: 200 }
+      case 'VIDEO_CLIP':
+        return { width: 360, height: 203 }
+      case 'MAP':
+        return { width: 360, height: 260 }
+      case 'HOTSPOT':
+        return { width: 90, height: 90 }
+      case 'QUESTION':
+        return { width: 320, height: 80 }
+      default:
+        return { width: 220, height: 52 }
+    }
+  }
+
   const handleAddInteraction = (type: Interaction['type']) => {
     const newInteraction: Interaction = {
       id: `inter-${Date.now()}`,
       type,
-      startTime: currentTime,
+      startTime: Number(currentTime.toFixed(1)),
       config: getDefaultConfig(type),
-      position: { x: 50, y: 50, width: 200, height: 50 },
+      position: { x: 50, y: 50, ...getDefaultSize(type) },
     }
     setInteractions([...interactions, newInteraction])
     setSelectedInteraction(newInteraction)
@@ -296,15 +345,19 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
         }
       case 'TEXT':
         return {
-          text: 'Metin içeriği',
+          text: 'Metniniz',
           style: {
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: '#7c3aed',
+            backgroundOpacity: 100,
             color: '#ffffff',
-            fontSize: 18,
+            fontSize: 28,
             fontFamily: 'Inter, sans-serif',
-            fontWeight: 400,
-            textAlign: 'left',
-            borderRadius: 8,
+            fontWeight: 700,
+            fontStyle: 'normal',
+            textDecoration: 'none',
+            textAlign: 'center',
+            borderRadius: 12,
+            padding: 12,
           },
         }
       case 'IMAGE':
@@ -312,6 +365,22 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
           url: '',
           alt: 'Resim',
           opacity: 100,
+          pauseMainVideo: false,
+        }
+      case 'VIDEO_CLIP':
+        return {
+          url: '',
+          pauseMainVideo: true, // araya ekle: ana video durur, klip biter, ana video devam eder
+          autoplay: true,
+          muted: false,
+          loop: false,
+          controls: true,
+        }
+      case 'MAP':
+        return {
+          address: 'İstanbul, Türkiye',
+          zoom: 14,
+          pauseMainVideo: false,
         }
       default:
         return {}
@@ -344,7 +413,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             <CardDescription>
               Video üzerine etkileşimli öğeler ekleyin
             </CardDescription>
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-4 gap-1">
               {interactionTypes.map((item) => (
                 <Button
                   key={item.type}
@@ -361,12 +430,10 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Add New Interaction */}
-            <Dialog>
-              <DialogTrigger>
-                <Button className="w-full">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Etkileşim Ekle
-                </Button>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger render={<Button className="w-full" />}>
+                <Plus className="mr-2 h-4 w-4" />
+                Etkileşim Ekle
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -383,10 +450,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
                       className="h-auto p-4 justify-start"
                       onClick={() => {
                         handleAddInteraction(item.type as Interaction['type'])
-                        // Close dialog
-                        document.querySelector('[data-state="open"]')?.dispatchEvent(
-                          new KeyboardEvent('keydown', { key: 'Escape' })
-                        )
+                        setAddOpen(false)
                       }}
                     >
                       <item.icon className="mr-3 h-5 w-5" />
@@ -580,64 +644,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
                   }}
                 >
                   {/* Preview content based on type */}
-                  {interaction.type === 'BUTTON' && (
-                    <div
-                      className="w-full h-full flex items-center justify-center text-white font-medium rounded-lg"
-                      style={{
-                        backgroundColor: interaction.config.style?.backgroundColor,
-                        color: interaction.config.style?.color,
-                        borderRadius: `${interaction.config.style?.borderRadius}px`,
-                        fontSize: `${interaction.config.style?.fontSize}px`,
-                        fontFamily: interaction.config.style?.fontFamily,
-                        fontWeight: interaction.config.style?.fontWeight,
-                        textAlign: interaction.config.style?.textAlign,
-                      }}
-                    >
-                      {interaction.config.text}
-                    </div>
-                  )}
-
-                  {interaction.type === 'TEXT' && (
-                    <div
-                      className="w-full h-full p-3 rounded-lg"
-                      style={{
-                        backgroundColor: interaction.config.style?.backgroundColor,
-                        color: interaction.config.style?.color,
-                        fontSize: `${interaction.config.style?.fontSize}px`,
-                        fontFamily: interaction.config.style?.fontFamily,
-                        fontWeight: interaction.config.style?.fontWeight,
-                        textAlign: interaction.config.style?.textAlign,
-                        borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
-                      }}
-                    >
-                      {interaction.config.text}
-                    </div>
-                  )}
-
-                  {interaction.type === 'HOTSPOT' && (
-                    <div
-                      className="w-full h-full rounded-full border-2 animate-pulse"
-                      style={{
-                        borderColor: interaction.config.style?.borderColor,
-                        backgroundColor: interaction.config.style?.backgroundColor,
-                      }}
-                    />
-                  )}
-
-                  {interaction.type === 'IMAGE' && interaction.config.url && (
-                    <img
-                      src={interaction.config.url}
-                      alt={interaction.config.alt || ''}
-                      className="h-full w-full object-contain"
-                      style={{ opacity: (interaction.config.opacity || 100) / 100 }}
-                    />
-                  )}
-
-                  {interaction.type === 'QUESTION' && (
-                    <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
-                      {interaction.config.question || 'Soru'}
-                    </div>
-                  )}
+                  <InteractionVisual interaction={interaction} />
                 </div>
               )
             })}
@@ -707,11 +714,9 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
           )}
 
           <Dialog>
-            <DialogTrigger>
-              <Button variant="outline">
-                <Eye className="mr-2 h-4 w-4" />
-                Önizle
-              </Button>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <Eye className="mr-2 h-4 w-4" />
+              Önizle
             </DialogTrigger>
             <DialogContent className="max-w-4xl">
               <DialogHeader>
@@ -910,29 +915,126 @@ function InteractionSettings({
         )}
 
         {interaction.type === 'TEXT' && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Metin</Label>
+            <TextToolbar style={interaction.config.style || {}} updateStyle={updateStyle} />
             <Textarea
+              rows={4}
               value={interaction.config.text}
               onChange={(e) => updateConfig('text', e.target.value)}
+              placeholder="Metninizi yazın..."
+              style={{
+                color: interaction.config.style?.color,
+                fontWeight: interaction.config.style?.fontWeight,
+                fontStyle: interaction.config.style?.fontStyle,
+                textDecoration: interaction.config.style?.textDecoration,
+                textAlign: interaction.config.style?.textAlign,
+              }}
             />
+            <p className="text-xs text-muted-foreground">
+              Font, boyut ve kenar yuvarlaklığı için “Stil” sekmesini kullanın.
+            </p>
           </div>
         )}
 
         {interaction.type === 'IMAGE' && (
-          <div className="space-y-2">
-            <Label>Resim URL</Label>
+          <div className="space-y-3">
+            <Label>Resim</Label>
+            <AssetUpload accept="image/*" label="Resim Yükle" onUploaded={(url) => updateConfig('url', url)} />
             <Input
-              value={interaction.config.url}
+              value={interaction.config.url || ''}
               onChange={(e) => updateConfig('url', e.target.value)}
-              placeholder="https://..."
+              placeholder="veya https://... URL yapıştırın"
             />
+            <div className="space-y-2">
+              <Label>Saydamlık (%)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={interaction.config.opacity ?? 100}
+                onChange={(e) => updateConfig('opacity', Number(e.target.value))}
+              />
+            </div>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <ToggleField
+                label="Araya ekle — ana video dursun, resim tam ekran görünsün (Devam Et ile sürer)"
+                checked={!!interaction.config.pauseMainVideo}
+                onChange={(v) => updateConfig('pauseMainVideo', v)}
+              />
+            </div>
+          </div>
+        )}
+
+        {interaction.type === 'VIDEO_CLIP' && (
+          <div className="space-y-3">
+            <Label>Video</Label>
+            <AssetUpload accept="video/*" label="Video Yükle" onUploaded={(url) => updateConfig('url', url)} />
+            <Input
+              value={interaction.config.url || ''}
+              onChange={(e) => updateConfig('url', e.target.value)}
+              placeholder="veya https://... video/mp4 URL"
+            />
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <ToggleField
+                label="Araya ekle — ana video dursun, klip oynasın, bitince devam etsin"
+                checked={interaction.config.pauseMainVideo !== false}
+                onChange={(v) => updateConfig('pauseMainVideo', v)}
+              />
+            </div>
+            {interaction.config.pauseMainVideo === false && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <ToggleField label="Otomatik oynat" checked={!!interaction.config.autoplay} onChange={(v) => updateConfig('autoplay', v)} />
+                <ToggleField label="Sessiz" checked={!!interaction.config.muted} onChange={(v) => updateConfig('muted', v)} />
+                <ToggleField label="Döngü" checked={!!interaction.config.loop} onChange={(v) => updateConfig('loop', v)} />
+                <ToggleField label="Kontroller" checked={!!interaction.config.controls} onChange={(v) => updateConfig('controls', v)} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {interaction.type === 'MAP' && (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Adres / Konum</Label>
+              <Input
+                value={interaction.config.address || ''}
+                onChange={(e) => updateConfig('address', e.target.value)}
+                placeholder="örn: Taksim Meydanı, İstanbul"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Yakınlaştırma (1-20)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={interaction.config.zoom ?? 14}
+                onChange={(e) => updateConfig('zoom', Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gömme URL (opsiyonel)</Label>
+              <Input
+                value={interaction.config.embedUrl || ''}
+                onChange={(e) => updateConfig('embedUrl', e.target.value)}
+                placeholder="Google Haritalar 'Yerleştir' bağlantısı"
+              />
+              <p className="text-xs text-muted-foreground">Boş bırakılırsa adres kullanılır.</p>
+            </div>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <ToggleField
+                label="Araya ekle — ana video dursun, harita tam ekran görünsün (Devam Et ile sürer)"
+                checked={!!interaction.config.pauseMainVideo}
+                onChange={(v) => updateConfig('pauseMainVideo', v)}
+              />
+            </div>
           </div>
         )}
       </TabsContent>
 
       <TabsContent value="style" className="space-y-4">
-        {interaction.type !== 'HOTSPOT' && interaction.type !== 'IMAGE' && (
+        {(interaction.type === 'BUTTON' || interaction.type === 'TEXT' || interaction.type === 'QUESTION') && (
           <>
             <div className="space-y-2">
               <Label>Arkaplan Rengi</Label>
@@ -1270,70 +1372,286 @@ function EditorPreview({
                 transform: 'translate(-50%, -50%)',
               }}
             >
-              {interaction.type === 'BUTTON' && (
-                <div
-                  className="flex h-full w-full items-center justify-center shadow-md"
-                  style={{
-                    backgroundColor: interaction.config.style?.backgroundColor || '#3b82f6',
-                    color: interaction.config.style?.color || '#ffffff',
-                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
-                    fontSize: `${interaction.config.style?.fontSize || 16}px`,
-                    fontFamily: interaction.config.style?.fontFamily,
-                    fontWeight: interaction.config.style?.fontWeight,
-                    textAlign: interaction.config.style?.textAlign || 'center',
-                  }}
-                >
-                  {interaction.config.text}
-                </div>
-              )}
-
-              {interaction.type === 'TEXT' && (
-                <div
-                  className="h-full w-full p-3"
-                  style={{
-                    backgroundColor: interaction.config.style?.backgroundColor || 'rgba(0, 0, 0, 0.7)',
-                    color: interaction.config.style?.color || '#ffffff',
-                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
-                    fontSize: `${interaction.config.style?.fontSize || 18}px`,
-                    fontFamily: interaction.config.style?.fontFamily,
-                    fontWeight: interaction.config.style?.fontWeight,
-                    textAlign: interaction.config.style?.textAlign || 'left',
-                  }}
-                >
-                  {interaction.config.text}
-                </div>
-              )}
-
-              {interaction.type === 'HOTSPOT' && (
-                <div
-                  className="h-full w-full animate-pulse rounded-full border-2"
-                  style={{
-                    borderColor: interaction.config.style?.borderColor || '#3b82f6',
-                    backgroundColor: interaction.config.style?.backgroundColor || 'rgba(59, 130, 246, 0.3)',
-                  }}
-                />
-              )}
-
-              {interaction.type === 'IMAGE' && interaction.config.url && (
-                <img
-                  src={interaction.config.url}
-                  alt={interaction.config.alt || ''}
-                  className="h-full w-full object-contain"
-                  style={{ opacity: (interaction.config.opacity || 100) / 100 }}
-                />
-              )}
-
-              {interaction.type === 'QUESTION' && (
-                <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
-                  {interaction.config.question || 'Soru'}
-                </div>
-              )}
+              <InteractionVisual interaction={interaction} interactive />
             </div>
           )
         })}
       </div>
     </div>
   )
+}
+
+function withOpacity(color: string | undefined, opacity: number | undefined) {
+  if (!color) return undefined
+  if (opacity == null || opacity >= 100) return color
+  const hex = color.replace('#', '')
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    const r = parseInt(hex.slice(0, 2), 16)
+    const g = parseInt(hex.slice(2, 4), 16)
+    const b = parseInt(hex.slice(4, 6), 16)
+    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`
+  }
+  return color
+}
+
+export function mapEmbedSrc(config: any): string {
+  if (config?.embedUrl) return config.embedUrl
+  const query = encodeURIComponent(config?.address || 'Türkiye')
+  const zoom = config?.zoom || 14
+  return `https://maps.google.com/maps?q=${query}&z=${zoom}&output=embed`
+}
+
+function ToggleField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <label className="flex items-center gap-2 rounded-md border p-2 text-sm cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4"
+      />
+      {label}
+    </label>
+  )
+}
+
+function AssetUpload({
+  accept,
+  label,
+  onUploaded,
+}: {
+  accept: string
+  label: string
+  onUploaded: (url: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleFile = async (file: File) => {
+    setUploading(true)
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/uploads', { method: 'POST', body: formData })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.url) throw new Error(data?.error || 'Yükleme başarısız')
+      onUploaded(data.url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Yükleme başarısız')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) handleFile(file)
+          e.target.value = ''
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={uploading}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Upload className="mr-2 h-4 w-4" />
+        )}
+        {uploading ? 'Yükleniyor...' : label}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+function TextToolbar({
+  style,
+  updateStyle,
+}: {
+  style: any
+  updateStyle: (key: string, value: any) => void
+}) {
+  const isBold = Number(style.fontWeight || 400) >= 600
+  const isItalic = style.fontStyle === 'italic'
+  const isUnderline = style.textDecoration === 'underline'
+  const align = style.textAlign || 'left'
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-muted/30 p-1.5">
+      <Button type="button" size="icon" variant={isBold ? 'default' : 'ghost'} className="h-8 w-8"
+        title="Kalın" onClick={() => updateStyle('fontWeight', isBold ? 400 : 700)}>
+        <Bold className="h-4 w-4" />
+      </Button>
+      <Button type="button" size="icon" variant={isItalic ? 'default' : 'ghost'} className="h-8 w-8"
+        title="İtalik" onClick={() => updateStyle('fontStyle', isItalic ? 'normal' : 'italic')}>
+        <Italic className="h-4 w-4" />
+      </Button>
+      <Button type="button" size="icon" variant={isUnderline ? 'default' : 'ghost'} className="h-8 w-8"
+        title="Altı çizili" onClick={() => updateStyle('textDecoration', isUnderline ? 'none' : 'underline')}>
+        <Underline className="h-4 w-4" />
+      </Button>
+      <Separator orientation="vertical" className="mx-1 h-6" />
+      <Button type="button" size="icon" variant={align === 'left' ? 'default' : 'ghost'} className="h-8 w-8"
+        title="Sola hizala" onClick={() => updateStyle('textAlign', 'left')}>
+        <AlignLeft className="h-4 w-4" />
+      </Button>
+      <Button type="button" size="icon" variant={align === 'center' ? 'default' : 'ghost'} className="h-8 w-8"
+        title="Ortala" onClick={() => updateStyle('textAlign', 'center')}>
+        <AlignCenter className="h-4 w-4" />
+      </Button>
+      <Button type="button" size="icon" variant={align === 'right' ? 'default' : 'ghost'} className="h-8 w-8"
+        title="Sağa hizala" onClick={() => updateStyle('textAlign', 'right')}>
+        <AlignRight className="h-4 w-4" />
+      </Button>
+      <Separator orientation="vertical" className="mx-1 h-6" />
+      <label className="flex items-center gap-1 text-xs" title="Yazı rengi">
+        <span className="text-muted-foreground">A</span>
+        <input type="color" value={style.color || '#ffffff'}
+          onChange={(e) => updateStyle('color', e.target.value)}
+          className="h-7 w-7 cursor-pointer rounded border bg-transparent p-0.5" />
+      </label>
+      <label className="flex items-center gap-1 text-xs" title="Arkaplan rengi">
+        <span className="text-muted-foreground">▟</span>
+        <input type="color" value={style.backgroundColor || '#7c3aed'}
+          onChange={(e) => updateStyle('backgroundColor', e.target.value)}
+          className="h-7 w-7 cursor-pointer rounded border bg-transparent p-0.5" />
+      </label>
+    </div>
+  )
+}
+
+// Shared visual for an interaction, used by both the editor canvas and the preview.
+// `interactive=false` (editor) disables pointer events on media so overlays stay draggable.
+function InteractionVisual({
+  interaction,
+  interactive = false,
+}: {
+  interaction: Interaction
+  interactive?: boolean
+}) {
+  const c = interaction.config || {}
+  const s = c.style || {}
+
+  switch (interaction.type) {
+    case 'BUTTON':
+      return (
+        <div
+          className="flex h-full w-full items-center justify-center shadow-md"
+          style={{
+            backgroundColor: s.backgroundColor || '#3b82f6',
+            color: s.color || '#ffffff',
+            borderRadius: `${s.borderRadius ?? 8}px`,
+            fontSize: `${s.fontSize || 16}px`,
+            fontFamily: s.fontFamily,
+            fontWeight: s.fontWeight,
+            textAlign: s.textAlign || 'center',
+          }}
+        >
+          {c.text}
+        </div>
+      )
+    case 'TEXT':
+      return (
+        <div
+          className="flex h-full w-full items-center"
+          style={{
+            backgroundColor: withOpacity(s.backgroundColor, s.backgroundOpacity) || 'rgba(0,0,0,0.7)',
+            color: s.color || '#ffffff',
+            fontSize: `${s.fontSize || 18}px`,
+            fontFamily: s.fontFamily,
+            fontWeight: s.fontWeight,
+            fontStyle: s.fontStyle || 'normal',
+            textDecoration: s.textDecoration || 'none',
+            textAlign: s.textAlign || 'left',
+            borderRadius: `${s.borderRadius ?? 8}px`,
+            padding: `${s.padding ?? 12}px`,
+            justifyContent: s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start',
+            whiteSpace: 'pre-wrap',
+            overflow: 'hidden',
+          }}
+        >
+          <span className="w-full">{c.text}</span>
+        </div>
+      )
+    case 'HOTSPOT':
+      return (
+        <div
+          className="h-full w-full animate-pulse rounded-full border-2"
+          style={{
+            borderColor: s.borderColor || '#3b82f6',
+            backgroundColor: s.backgroundColor || 'rgba(59, 130, 246, 0.3)',
+          }}
+        />
+      )
+    case 'IMAGE':
+      return c.url ? (
+        <img
+          src={c.url}
+          alt={c.alt || ''}
+          className="h-full w-full object-contain"
+          style={{ opacity: (c.opacity ?? 100) / 100 }}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-white/40 bg-black/40 text-xs text-white/70">
+          Resim seçin
+        </div>
+      )
+    case 'VIDEO_CLIP':
+      return c.url ? (
+        <video
+          src={c.url}
+          className={cn('h-full w-full rounded-lg object-cover', !interactive && 'pointer-events-none')}
+          muted={interactive ? c.muted : true}
+          loop={c.loop}
+          controls={interactive ? c.controls : false}
+          playsInline
+          autoPlay={interactive ? c.autoplay : false}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-white/40 bg-black/40 text-xs text-white/70">
+          Video seçin
+        </div>
+      )
+    case 'MAP':
+      return (
+        <iframe
+          title="map"
+          src={mapEmbedSrc(c)}
+          className={cn('h-full w-full rounded-lg border-0', !interactive && 'pointer-events-none')}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      )
+    case 'QUESTION':
+      return (
+        <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
+          {c.question || 'Soru'}
+        </div>
+      )
+    default:
+      return null
+  }
 }
 
 function formatTime(seconds: number): string {

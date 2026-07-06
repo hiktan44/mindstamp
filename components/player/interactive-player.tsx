@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { VideoPlayer } from './video-player'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle2, Menu, RotateCcw, X } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Menu, RotateCcw, X } from 'lucide-react'
 import { applyVariableAssignments, evaluateRuntimeConditions, type RuntimeVariables } from '@/lib/video/runtime'
 
 interface Interaction {
@@ -47,10 +49,29 @@ interface InteractivePlayerProps {
   }
 }
 
+function withOpacity(color?: string, opacity?: number) {
+  if (!color) return undefined
+  if (opacity == null || opacity >= 100) return color
+  const hex = color.replace('#', '')
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    const r = parseInt(hex.slice(0, 2), 16)
+    const g = parseInt(hex.slice(2, 4), 16)
+    const b = parseInt(hex.slice(4, 6), 16)
+    return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`
+  }
+  return color
+}
+
+function mapEmbedSrc(config: any): string {
+  if (config?.embedUrl) return config.embedUrl
+  const query = encodeURIComponent(config?.address || 'Türkiye')
+  const zoom = config?.zoom || 14
+  return `https://maps.google.com/maps?q=${query}&z=${zoom}&output=embed`
+}
+
 export function InteractivePlayer({ video, embed = false, playerOptions }: InteractivePlayerProps) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [hasSubmittedLead, setHasSubmittedLead] = useState(false)
   const [showMagicMenu, setShowMagicMenu] = useState(false)
@@ -63,14 +84,21 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     sessionId: string
     viewerId: string
   } | null>(null)
-  const [viewedInteractions, setViewedInteractions] = useState<Set<string>>(new Set())
+  // Dedupe analytics 'view' events without triggering re-renders (a ref, not state,
+  // to avoid an infinite update loop).
+  const viewedInteractionsRef = useRef<Set<string>>(new Set())
   const [runtimeVariables, setRuntimeVariables] = useState<RuntimeVariables>({})
   const [showEndScreen, setShowEndScreen] = useState(false)
-  
+  const [viewerMessage, setViewerMessage] = useState<string | null>(null)
+  // "Araya ekle" — main video pauses, an inserted item (video/image/map) is shown,
+  // then the main video resumes.
+  const [activeInsert, setActiveInsert] = useState<Interaction | null>(null)
+  const consumedInsertsRef = useRef<Set<string>>(new Set())
+  const insertVideoRef = useRef<HTMLVideoElement | null>(null)
+
   const [leadForm, setLeadForm] = useState({ name: '', email: '', phone: '' })
   const [isSubmittingLead, setIsSubmittingLead] = useState(false)
 
-  const playerRef = useRef<any>(null)
   const watchStartedAtRef = useRef<number>(Date.now())
 
   const postAnalytics = async (path: string, payload: Record<string, any>) => {
@@ -174,30 +202,30 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
 
   const interactions = video.interactions || []
 
-  const visibleInteractions = interactions.filter((interaction) => {
-    if (!evaluateRuntimeConditions(interaction.logic?.conditions, runtimeVariables)) {
-      return false
-    }
+  const visibleInteractions = useMemo(() => {
+    return interactions.filter((interaction) => {
+      if (!evaluateRuntimeConditions(interaction.logic?.conditions, runtimeVariables)) {
+        return false
+      }
 
-    if (interaction.endTime) {
-      return currentTime >= interaction.startTime && currentTime <= interaction.endTime
-    }
-    return currentTime >= interaction.startTime
-  })
+      if (interaction.endTime) {
+        return currentTime >= interaction.startTime && currentTime <= interaction.endTime
+      }
+      return currentTime >= interaction.startTime
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactions, currentTime, runtimeVariables])
 
   useEffect(() => {
     if (!analyticsContext) return
 
-    const newlyVisible = visibleInteractions.filter((interaction) => !viewedInteractions.has(interaction.id))
+    const newlyVisible = visibleInteractions.filter(
+      (interaction) => !viewedInteractionsRef.current.has(interaction.id)
+    )
     if (newlyVisible.length === 0) return
 
-    setViewedInteractions((previous) => {
-      const next = new Set(previous)
-      newlyVisible.forEach((interaction) => next.add(interaction.id))
-      return next
-    })
-
     newlyVisible.forEach((interaction) => {
+      viewedInteractionsRef.current.add(interaction.id)
       postAnalytics('/api/analytics/interaction', {
         analyticsId: analyticsContext.analyticsId,
         sessionId: analyticsContext.sessionId,
@@ -210,7 +238,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         },
       })
     })
-  }, [analyticsContext, currentTime, video.id, viewedInteractions, visibleInteractions])
+  }, [analyticsContext, currentTime, video.id, visibleInteractions])
 
   const trackInteraction = (interaction: Interaction, eventType: 'click' | 'submit', data?: Record<string, any>) => {
     if (!analyticsContext) return
@@ -229,51 +257,90 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     })
   }
 
-  const handleInteractionClick = (e: React.MouseEvent | React.PointerEvent, interaction: Interaction) => {
+  const getConfiguredUrl = (interaction: Interaction) => {
+    const rawUrl = interaction.config?.url || interaction.config?.linkUrl
+    if (!rawUrl || typeof rawUrl !== 'string') return null
+
+    if (rawUrl.startsWith('/') || rawUrl.startsWith('#')) return rawUrl
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl
+
+    return `https://${rawUrl}`
+  }
+
+  const getInteractionLabel = (interaction: Interaction) => {
+    return (
+      interaction.config?.text ||
+      interaction.config?.question ||
+      interaction.config?.alt ||
+      interaction.type
+    )
+  }
+
+  const playVideo = () => {
+    const videoEl = document.querySelector('video')
+    if (videoEl) videoEl.play().catch(() => null)
+  }
+
+  const pauseVideo = () => {
+    const videoEl = document.querySelector('video')
+    if (videoEl) videoEl.pause()
+  }
+
+  const handleInteractionClick = (e: React.MouseEvent, interaction: Interaction) => {
     e.stopPropagation()
     e.preventDefault()
 
-    if (!interaction.config?.action) return
+    if (interaction.type === 'QUESTION') {
+      if (answeredQuestions[interaction.id]) {
+        setQuestionResult({ isCorrect: answeredQuestions[interaction.id].isCorrect })
+      } else {
+        setQuestionAnswer(null)
+        setQuestionResult(null)
+      }
+      setActiveQuestion(interaction)
+      pauseVideo()
+      return
+    }
 
-    trackInteraction(interaction, 'click')
+    const action = interaction.config?.action || 'CONTINUE'
+
+    trackInteraction(interaction, 'click', { action })
 
     if (interaction.variables) {
       setRuntimeVariables((current) => applyVariableAssignments(current, interaction.variables))
     }
 
-    switch (interaction.config.action) {
-      case 'OPEN_LINK':
-        if (interaction.config.url) {
-          // If URL doesn't have http/https, prepend it
-          let targetUrl = interaction.config.url;
-          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-            targetUrl = 'https://' + targetUrl;
-          }
-          window.open(targetUrl, '_blank')
-        }
+    switch (action) {
+      case 'CONTINUE':
+        playVideo()
         break
-      case 'REDIRECT_LINK':
-        if (interaction.config.url) {
-          window.location.href = interaction.config.url
-        }
+      case 'OPEN_LINK': {
+        const targetUrl = getConfiguredUrl(interaction)
+        if (targetUrl) window.open(targetUrl, '_blank', 'noopener,noreferrer')
+        break
+      }
+      case 'REDIRECT_LINK': {
+        const targetUrl = getConfiguredUrl(interaction)
+        if (targetUrl) window.location.href = targetUrl
+        break
+      }
+      case 'SHOW_MESSAGE':
+        setViewerMessage(interaction.config?.message || interaction.config?.text || 'Mesaj')
+        pauseVideo()
         break
       case 'PAUSE':
-        // The VideoPlayer component doesn't currently expose a way to pause programmatically
-        // without a ref to the internal video element. A quick hack is to click the video:
-        const videoElPause = document.querySelector('video')
-        if (videoElPause && !videoElPause.paused) {
-           videoElPause.pause()
-        }
+        pauseVideo()
         break
-      case 'CHANGE_TIME':
+      case 'CHANGE_TIME': {
         if (interaction.config.targetTime !== undefined) {
           const videoElTime = document.querySelector('video')
           if (videoElTime) {
-             videoElTime.currentTime = interaction.config.targetTime;
-             videoElTime.play().catch(e => console.error("Could not resume playback", e));
+            videoElTime.currentTime = Number(interaction.config.targetTime)
+            videoElTime.play().catch(() => null)
           }
         }
         break
+      }
       case 'SWITCH_VIDEO':
         if (interaction.config.switchVideoId) {
           window.location.href = `/watch/${interaction.config.switchVideoId}`
@@ -285,11 +352,13 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       case 'RESET_VIEWER_STATE':
         setRuntimeVariables({})
         setAnsweredQuestions({})
-        setViewedInteractions(new Set())
+        viewedInteractionsRef.current = new Set()
+        consumedInsertsRef.current = new Set()
         break
       case 'RESET_INTERACTIONS':
         setAnsweredQuestions({})
-        setViewedInteractions(new Set())
+        viewedInteractionsRef.current = new Set()
+        consumedInsertsRef.current = new Set()
         break
       case 'OPEN_MAGIC_MENU':
         setShowMagicMenu(true)
@@ -297,25 +366,6 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       default:
         break
     }
-  }
-
-  const handleInteractionPointer = (e: React.MouseEvent | React.PointerEvent, interaction: Interaction) => {
-    if (interaction.type === 'QUESTION') {
-      e.stopPropagation()
-      e.preventDefault()
-      if (answeredQuestions[interaction.id]) {
-        setQuestionResult({ isCorrect: answeredQuestions[interaction.id].isCorrect })
-      } else {
-        setQuestionAnswer(null)
-        setQuestionResult(null)
-      }
-      setActiveQuestion(interaction)
-      const videoEl = document.querySelector('video')
-      if (videoEl) videoEl.pause()
-      return
-    }
-
-    handleInteractionClick(e, interaction)
   }
 
   const handleQuestionSubmit = () => {
@@ -347,7 +397,6 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   }
 
   const handleVideoEnded = () => {
-    setIsPlaying(false)
     const endScreen = video.endScreens?.[0]
     if (endScreen?.enabled) {
       setShowEndScreen(true)
@@ -364,8 +413,45 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     })
   }
 
+  const resumeFromInsert = () => {
+    if (activeInsert) {
+      trackInteraction(activeInsert, 'submit', { action: 'INSERT_CLOSE' })
+    }
+    setActiveInsert(null)
+    playVideo()
+  }
+
+  // Autoplay the inserted video when the insert modal opens.
+  useEffect(() => {
+    if (activeInsert?.type === 'VIDEO_CLIP' && insertVideoRef.current) {
+      insertVideoRef.current.play().catch(() => null)
+    }
+  }, [activeInsert])
+
+  // Trigger an "insert" (pause main video + show the item) once, when its
+  // start time is reached during playback.
+  useEffect(() => {
+    if (activeInsert) return
+    const insert = interactions.find(
+      (i) =>
+        i.config?.pauseMainVideo &&
+        !consumedInsertsRef.current.has(i.id) &&
+        currentTime >= i.startTime &&
+        currentTime < i.startTime + 1.5
+    )
+    if (!insert) return
+    consumedInsertsRef.current.add(insert.id)
+    pauseVideo()
+    setActiveInsert(insert)
+    trackInteraction(insert, 'click', { action: 'INSERT_OPEN' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTime, interactions, activeInsert])
+
   return (
-    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+    <div className={cn(
+      "relative w-full aspect-video overflow-hidden bg-black",
+      embed ? "rounded-none shadow-none" : "rounded-xl shadow-lg"
+    )}>
       <VideoPlayer
         src={video.hlsUrl || video.videoUrl || ''}
         poster={video.thumbnailUrl || undefined}
@@ -376,8 +462,6 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         captions={video.captions || []}
         onTimeUpdate={setCurrentTime}
         onDurationChange={setDuration}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         onEnded={handleVideoEnded}
         className={cn("w-full h-full", showLeadForm && "blur-sm brightness-50")}
       />
@@ -438,6 +522,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
             <Button
               variant="secondary"
               size="icon"
+              aria-label="Menüyü aç"
               className="rounded-full shadow-lg opacity-80 hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation()
@@ -453,6 +538,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Menüyü kapat"
                   className="h-6 w-6 text-white hover:bg-white/20"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -485,19 +571,57 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         <div className="absolute inset-0 pointer-events-none z-10 p-2">
         {visibleInteractions.map((interaction) => {
           if (!interaction.position) return null
+          // "Araya ekle" items are shown as a modal insert, not a persistent overlay.
+          if (interaction.config?.pauseMainVideo) return null
+
+          const posStyle: React.CSSProperties = {
+            left: `${interaction.position.x}%`,
+            top: `${interaction.position.y}%`,
+            width: `${interaction.position.width}px`,
+            height: `${interaction.position.height}px`,
+            transform: 'translate(-50%, -50%)', // Centered around x,y
+          }
+
+          // Media overlays are interactive themselves (not click-to-action buttons)
+          if (interaction.type === 'VIDEO_CLIP') {
+            return interaction.config.url ? (
+              <div key={interaction.id} className="absolute pointer-events-auto" style={posStyle}>
+                <video
+                  src={interaction.config.url}
+                  className="h-full w-full rounded-lg object-cover shadow-lg"
+                  autoPlay={interaction.config.autoplay}
+                  muted={interaction.config.muted}
+                  loop={interaction.config.loop}
+                  controls={interaction.config.controls}
+                  playsInline
+                />
+              </div>
+            ) : null
+          }
+
+          if (interaction.type === 'MAP') {
+            return (
+              <div key={interaction.id} className="absolute pointer-events-auto" style={posStyle}>
+                <iframe
+                  title="Harita"
+                  src={mapEmbedSrc(interaction.config)}
+                  className="h-full w-full rounded-lg border-0 shadow-lg"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )
+          }
+
           return (
-            <div
+            <button
+              type="button"
               key={interaction.id}
-              className="absolute pointer-events-auto cursor-pointer transition-opacity"
-              style={{
-                left: `${interaction.position.x}%`,
-                top: `${interaction.position.y}%`,
-                width: `${interaction.position.width}px`,
-                height: `${interaction.position.height}px`,
-                transform: 'translate(-50%, -50%)', // Centered around x,y
-              }}
+              data-testid={`interaction-${interaction.id}`}
+              aria-label={getInteractionLabel(interaction)}
+              className="absolute pointer-events-auto cursor-pointer border-0 bg-transparent p-0 text-left transition-opacity"
+              style={posStyle}
               onClick={(e) => handleInteractionClick(e, interaction)}
-              onPointerDown={(e) => handleInteractionPointer(e, interaction)}
             >
               {interaction.type === 'BUTTON' && (
                 <div
@@ -518,18 +642,30 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
 
               {interaction.type === 'TEXT' && (
                 <div
-                  className="w-full h-full p-3 flex"
+                  className="w-full h-full flex items-center"
                   style={{
-                    backgroundColor: interaction.config.style?.backgroundColor || 'rgba(0,0,0,0.7)',
+                    backgroundColor:
+                      withOpacity(interaction.config.style?.backgroundColor, interaction.config.style?.backgroundOpacity) ||
+                      'rgba(0,0,0,0.7)',
                     color: interaction.config.style?.color || '#ffffff',
                     fontSize: `${interaction.config.style?.fontSize || 18}px`,
-                    borderRadius: `${interaction.config.style?.borderRadius || 8}px`,
+                    borderRadius: `${interaction.config.style?.borderRadius ?? 8}px`,
                     fontFamily: interaction.config.style?.fontFamily,
                     fontWeight: interaction.config.style?.fontWeight,
+                    fontStyle: interaction.config.style?.fontStyle || 'normal',
+                    textDecoration: interaction.config.style?.textDecoration || 'none',
                     textAlign: interaction.config.style?.textAlign || 'left',
+                    padding: `${interaction.config.style?.padding ?? 12}px`,
+                    justifyContent:
+                      interaction.config.style?.textAlign === 'center'
+                        ? 'center'
+                        : interaction.config.style?.textAlign === 'right'
+                          ? 'flex-end'
+                          : 'flex-start',
+                    whiteSpace: 'pre-wrap',
                   }}
                 >
-                  {interaction.config.text}
+                  <span className="w-full">{interaction.config.text}</span>
                 </div>
               )}
 
@@ -561,10 +697,44 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                   {interaction.config.question || 'Soru'}
                 </div>
               )}
-            </div>
+            </button>
           )
         })}
       </div>
+      )}
+
+      {viewerMessage && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl border border-white/15 bg-background p-6 text-foreground shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <h3 className="text-lg font-semibold">Mesaj</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  setViewerMessage(null)
+                  playVideo()
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm leading-6 text-muted-foreground">{viewerMessage}</p>
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="button"
+                onClick={() => {
+                  setViewerMessage(null)
+                  playVideo()
+                }}
+              >
+                Devam Et
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {activeQuestion && (
@@ -581,6 +751,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                     <button
                       key={`${activeQuestion.id}-${index}`}
                       type="button"
+                      aria-label={`${String.fromCharCode(65 + index)} ${option}`}
                       onClick={() => setQuestionAnswer(option)}
                       className={cn(
                         'w-full text-left rounded-lg border p-3 transition-colors',
@@ -633,6 +804,43 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         </div>
       )}
 
+      {activeInsert && (
+        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-black/90 p-4">
+          <div className="relative w-full max-w-3xl">
+            {activeInsert.type === 'VIDEO_CLIP' && activeInsert.config.url && (
+              <video
+                ref={insertVideoRef}
+                src={activeInsert.config.url}
+                className="w-full rounded-lg shadow-2xl"
+                controls
+                autoPlay
+                playsInline
+                onEnded={resumeFromInsert}
+              />
+            )}
+            {activeInsert.type === 'IMAGE' && activeInsert.config.url && (
+              <img
+                src={activeInsert.config.url}
+                alt={activeInsert.config.alt || ''}
+                className="mx-auto max-h-[70vh] w-auto rounded-lg shadow-2xl"
+              />
+            )}
+            {activeInsert.type === 'MAP' && (
+              <iframe
+                title="Harita"
+                src={mapEmbedSrc(activeInsert.config)}
+                className="aspect-video w-full rounded-lg border-0 shadow-2xl"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            )}
+          </div>
+          <Button onClick={resumeFromInsert} className="shadow-lg">
+            {activeInsert.type === 'VIDEO_CLIP' ? 'Atla ve Devam Et' : 'Devam Et'}
+          </Button>
+        </div>
+      )}
+
       {showEndScreen && video.endScreens?.[0]?.enabled && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-4 text-white">
           <div className="w-full max-w-lg rounded-xl border border-white/15 bg-white/10 p-6 text-center shadow-2xl backdrop-blur">
@@ -647,6 +855,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                 variant="secondary"
                 onClick={() => {
                   setShowEndScreen(false)
+                  consumedInsertsRef.current = new Set()
                   const videoEl = document.querySelector('video')
                   if (videoEl) {
                     videoEl.currentTime = 0
@@ -663,6 +872,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                     window.location.href = video.endScreens?.[0]?.buttonConfig?.url
                   }}
                 >
+                  <ExternalLink className="mr-2 h-4 w-4" />
                   {video.endScreens[0].buttonConfig?.label || 'Devam Et'}
                 </Button>
               )}

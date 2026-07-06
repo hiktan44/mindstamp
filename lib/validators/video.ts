@@ -17,6 +17,7 @@ const interactionSchema = z.object({
     'IMAGE',
     'VIDEO_CLIP',
     'AUDIO_CLIP',
+    'MAP',
     'DRAWING',
     'CHANGE_TIME',
     'PAUSE',

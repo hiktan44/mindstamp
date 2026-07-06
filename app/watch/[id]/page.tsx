@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { canWatchVideo } from '@/lib/video/access'
 import { PasswordGate } from '@/components/player/password-gate'
+import { SeekButton } from '@/components/player/seek-button'
 
 interface WatchPageProps {
   params: {
@@ -170,17 +171,7 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
                       const seconds = time % 60
 
                       return (
-                        <button
-                          key={interaction.id}
-                          onClick={() => {
-                            const videoEl = document.querySelector('video')
-                            if (videoEl) {
-                              videoEl.currentTime = interaction.startTime
-                              videoEl.play()
-                            }
-                          }}
-                          className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
-                        >
+                        <SeekButton key={interaction.id} time={interaction.startTime}>
                           <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10 text-xs font-mono">
                             {index + 1}
                           </div>
@@ -197,7 +188,7 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
                           <Badge variant="secondary" className="text-xs">
                             {interaction.type}
                           </Badge>
-                        </button>
+                        </SeekButton>
                       )
                     })}
                   </div>
@@ -217,24 +208,14 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
                       const seconds = time % 60
 
                       return (
-                        <button
-                          key={chapter.id}
-                          onClick={() => {
-                            const videoEl = document.querySelector('video')
-                            if (videoEl) {
-                              videoEl.currentTime = chapter.startTime
-                              videoEl.play()
-                            }
-                          }}
-                          className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
-                        >
+                        <SeekButton key={chapter.id} time={chapter.startTime}>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{chapter.title}</p>
                           </div>
                           <span className="text-xs text-muted-foreground font-mono">
                             {minutes}:{seconds.toString().padStart(2, '0')}
                           </span>
-                        </button>
+                        </SeekButton>
                       )
                     })}
                   </div>

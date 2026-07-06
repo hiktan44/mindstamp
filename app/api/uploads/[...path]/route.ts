@@ -39,8 +39,35 @@ export async function GET(
         case 'jpeg':
           contentType = 'image/jpeg'
           break
+        case 'png':
+          contentType = 'image/png'
+          break
+        case 'gif':
+          contentType = 'image/gif'
+          break
+        case 'webp':
+          contentType = 'image/webp'
+          break
+        case 'svg':
+          contentType = 'image/svg+xml'
+          break
         case 'mp4':
           contentType = 'video/mp4'
+          break
+        case 'webm':
+          contentType = 'video/webm'
+          break
+        case 'mov':
+          contentType = 'video/quicktime'
+          break
+        case 'mp3':
+          contentType = 'audio/mpeg'
+          break
+        case 'wav':
+          contentType = 'audio/wav'
+          break
+        case 'ogg':
+          contentType = 'audio/ogg'
           break
       }
 

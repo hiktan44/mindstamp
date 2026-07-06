@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone",
   poweredByHeader: false,
+  // Pin the workspace root so Turbopack doesn't pick a stray parent lockfile
+  // (e.g. ~/package-lock.json) and fail to resolve tailwindcss / other deps.
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "500mb",
