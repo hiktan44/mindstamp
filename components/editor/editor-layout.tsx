@@ -111,6 +111,35 @@ const clickActions = [
   { value: 'PAUSE', label: 'Duraklat' },
 ]
 
+const enterAnimations = [
+  { value: 'none', label: 'Yok' },
+  { value: 'fade', label: 'Belirme' },
+  { value: 'slide-up', label: 'Aşağıdan kay' },
+  { value: 'slide-down', label: 'Yukarıdan kay' },
+  { value: 'slide-left', label: 'Sağdan kay' },
+  { value: 'slide-right', label: 'Soldan kay' },
+  { value: 'zoom', label: 'Yakınlaş' },
+]
+
+export function enterAnimationClass(anim?: string): string {
+  switch (anim) {
+    case 'fade':
+      return 'animate-in fade-in duration-500'
+    case 'slide-up':
+      return 'animate-in slide-in-from-bottom-6 fade-in duration-500'
+    case 'slide-down':
+      return 'animate-in slide-in-from-top-6 fade-in duration-500'
+    case 'slide-left':
+      return 'animate-in slide-in-from-right-6 fade-in duration-500'
+    case 'slide-right':
+      return 'animate-in slide-in-from-left-6 fade-in duration-500'
+    case 'zoom':
+      return 'animate-in zoom-in-95 fade-in duration-500'
+    default:
+      return ''
+  }
+}
+
 const fontFamilies = [
   { value: 'Inter, sans-serif', label: 'Inter' },
   { value: 'Arial, sans-serif', label: 'Arial' },
@@ -137,6 +166,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [interactionFilter, setInteractionFilter] = useState<'ALL' | Interaction['type']>('ALL')
   const [addOpen, setAddOpen] = useState(false)
+  const [listTab, setListTab] = useState<'all' | 'inserts'>('all')
 
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
@@ -442,7 +472,10 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
     })
   }
 
+  const insertCount = interactions.filter((i) => i.config?.pauseMainVideo).length
+
   const filteredInteractions = interactions.filter((interaction) => {
+    if (listTab === 'inserts' && !interaction.config?.pauseMainVideo) return false
     return interactionFilter === 'ALL' || interaction.type === interactionFilter
   })
 
@@ -513,6 +546,33 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             </Dialog>
 
             <Separator />
+
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setListTab('all')}
+                className={cn(
+                  'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                  listTab === 'all' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Tümü
+              </button>
+              <button
+                type="button"
+                onClick={() => setListTab('inserts')}
+                className={cn(
+                  'flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                  listTab === 'inserts' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Film className="h-3 w-3" />
+                Araya Eklenenler
+                {insertCount > 0 && (
+                  <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{insertCount}</span>
+                )}
+              </button>
+            </div>
 
             <div className="space-y-2">
               <Label>Filtre</Label>
@@ -1070,12 +1130,23 @@ function InteractionSettings({
                 onChange={(e) => updateConfig('opacity', Number(e.target.value))}
               />
             </div>
-            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
               <ToggleField
                 label="Araya ekle — ana video dursun, resim tam ekran görünsün (Devam Et ile sürer)"
                 checked={!!interaction.config.pauseMainVideo}
                 onChange={(v) => updateConfig('pauseMainVideo', v)}
               />
+              {interaction.config.pauseMainVideo && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Zorunlu bekleme (sn) — 0 = hemen geçilebilir</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={interaction.config.minDuration ?? 0}
+                    onChange={(e) => updateConfig('minDuration', Number(e.target.value))}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1089,12 +1160,19 @@ function InteractionSettings({
               onChange={(e) => updateConfig('url', e.target.value)}
               placeholder="veya https://... video/mp4 URL"
             />
-            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
               <ToggleField
                 label="Araya ekle — ana video dursun, klip oynasın, bitince devam etsin"
                 checked={interaction.config.pauseMainVideo !== false}
                 onChange={(v) => updateConfig('pauseMainVideo', v)}
               />
+              {interaction.config.pauseMainVideo !== false && (
+                <ToggleField
+                  label="Atlanamaz — sonuna kadar izlensin (zorunlu)"
+                  checked={!!interaction.config.required}
+                  onChange={(v) => updateConfig('required', v)}
+                />
+              )}
             </div>
             {interaction.config.pauseMainVideo === false && (
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -1124,12 +1202,19 @@ function InteractionSettings({
                 placeholder="örn: Seslendirme"
               />
             </div>
-            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
               <ToggleField
                 label="Araya ekle — ana video dursun, ses çalsın, bitince devam etsin"
                 checked={interaction.config.pauseMainVideo !== false}
                 onChange={(v) => updateConfig('pauseMainVideo', v)}
               />
+              {interaction.config.pauseMainVideo !== false && (
+                <ToggleField
+                  label="Atlanamaz — sonuna kadar dinlensin (zorunlu)"
+                  checked={!!interaction.config.required}
+                  onChange={(v) => updateConfig('required', v)}
+                />
+              )}
             </div>
           </div>
         )}
@@ -1163,18 +1248,48 @@ function InteractionSettings({
               />
               <p className="text-xs text-muted-foreground">Boş bırakılırsa adres kullanılır.</p>
             </div>
-            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
               <ToggleField
                 label="Araya ekle — ana video dursun, harita tam ekran görünsün (Devam Et ile sürer)"
                 checked={!!interaction.config.pauseMainVideo}
                 onChange={(v) => updateConfig('pauseMainVideo', v)}
               />
+              {interaction.config.pauseMainVideo && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Zorunlu bekleme (sn) — 0 = hemen geçilebilir</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={interaction.config.minDuration ?? 0}
+                    onChange={(e) => updateConfig('minDuration', Number(e.target.value))}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
       </TabsContent>
 
       <TabsContent value="style" className="space-y-4">
+        <div className="space-y-2">
+          <Label>Giriş Animasyonu</Label>
+          <Select
+            value={interaction.config.animation || 'none'}
+            onValueChange={(value) => updateConfig('animation', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {enterAnimations.map((a) => (
+                <SelectItem key={a.value} value={a.value}>
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {(interaction.type === 'BUTTON' || interaction.type === 'TEXT' || interaction.type === 'QUESTION') && (
           <>
             <div className="space-y-2">
@@ -1504,7 +1619,7 @@ function EditorPreview({
           return (
             <div
               key={interaction.id}
-              className="absolute"
+              className={cn('absolute', enterAnimationClass(interaction.config?.animation))}
               style={{
                 left: `${interaction.position.x}%`,
                 top: `${interaction.position.y}%`,

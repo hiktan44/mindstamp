@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -41,13 +39,13 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Videolar', href: '/dashboard/videos', icon: Video },
-  { name: 'Klasörler', href: '/dashboard/folders', icon: FolderOpen },
-  { name: 'Müşteriler', href: '/dashboard/leads', icon: Users },
-  { name: 'Analitik', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Genie AI', href: '/dashboard/genie', icon: Sparkles },
-  { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'text-indigo-500' },
+  { name: 'Videolar', href: '/dashboard/videos', icon: Video, color: 'text-sky-500' },
+  { name: 'Klasörler', href: '/dashboard/folders', icon: FolderOpen, color: 'text-amber-500' },
+  { name: 'Müşteriler', href: '/dashboard/leads', icon: Users, color: 'text-emerald-500' },
+  { name: 'Analitik', href: '/dashboard/analytics', icon: BarChart3, color: 'text-rose-500' },
+  { name: 'Genie AI', href: '/dashboard/genie', icon: Sparkles, color: 'text-fuchsia-500' },
+  { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500' },
 ]
 
 export default function DashboardLayout({
@@ -57,7 +55,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed] = useState(false)
 
   return (
     <SidebarProvider>
@@ -87,7 +85,7 @@ export default function DashboardLayout({
                           tooltip={item.name}
                           onClick={() => router.push(item.href)}
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className={`h-4 w-4 ${item.color}`} />
                           <span>{item.name}</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -102,11 +100,14 @@ export default function DashboardLayout({
             <SidebarMenu>
               <SidebarMenuItem>
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <SidebarMenuButton
-                      size="lg"
-                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                    >
+                  <DropdownMenuTrigger
+                    render={
+                      <SidebarMenuButton
+                        size="lg"
+                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                      />
+                    }
+                  >
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarImage src="" alt="User" />
                         <AvatarFallback className="rounded-lg">
@@ -121,7 +122,6 @@ export default function DashboardLayout({
                           user@example.com
                         </span>
                       </div>
-                    </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"

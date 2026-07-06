@@ -69,6 +69,25 @@ function mapEmbedSrc(config: any): string {
   return `https://maps.google.com/maps?q=${query}&z=${zoom}&output=embed`
 }
 
+function enterAnimationClass(anim?: string): string {
+  switch (anim) {
+    case 'fade':
+      return 'animate-in fade-in duration-500'
+    case 'slide-up':
+      return 'animate-in slide-in-from-bottom-6 fade-in duration-500'
+    case 'slide-down':
+      return 'animate-in slide-in-from-top-6 fade-in duration-500'
+    case 'slide-left':
+      return 'animate-in slide-in-from-right-6 fade-in duration-500'
+    case 'slide-right':
+      return 'animate-in slide-in-from-left-6 fade-in duration-500'
+    case 'zoom':
+      return 'animate-in zoom-in-95 fade-in duration-500'
+    default:
+      return ''
+  }
+}
+
 export function InteractivePlayer({ video, embed = false, playerOptions }: InteractivePlayerProps) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -93,6 +112,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   // "Araya ekle" — main video pauses, an inserted item (video/image/map) is shown,
   // then the main video resumes.
   const [activeInsert, setActiveInsert] = useState<Interaction | null>(null)
+  const [insertCountdown, setInsertCountdown] = useState(0)
   const consumedInsertsRef = useRef<Set<string>>(new Set())
   const insertVideoRef = useRef<HTMLVideoElement | null>(null)
   const insertAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -442,6 +462,33 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     }
   }, [activeInsert])
 
+  // Mandatory wait countdown for image/map inserts.
+  useEffect(() => {
+    if (!activeInsert) {
+      setInsertCountdown(0)
+      return
+    }
+    const min =
+      activeInsert.type === 'IMAGE' || activeInsert.type === 'MAP'
+        ? Number(activeInsert.config?.minDuration || 0)
+        : 0
+    if (min <= 0) {
+      setInsertCountdown(0)
+      return
+    }
+    setInsertCountdown(min)
+    const interval = window.setInterval(() => {
+      setInsertCountdown((c) => {
+        if (c <= 1) {
+          window.clearInterval(interval)
+          return 0
+        }
+        return c - 1
+      })
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [activeInsert])
+
   // Trigger an "insert" (pause main video + show the item) once, when its
   // start time is reached during playback.
   useEffect(() => {
@@ -601,7 +648,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
           // Media overlays are interactive themselves (not click-to-action buttons)
           if (interaction.type === 'VIDEO_CLIP') {
             return interaction.config.url ? (
-              <div key={interaction.id} className="absolute pointer-events-auto" style={posStyle}>
+              <div key={interaction.id} className={cn('absolute pointer-events-auto', enterAnimationClass(interaction.config?.animation))} style={posStyle}>
                 <video
                   src={interaction.config.url}
                   className="h-full w-full rounded-lg object-cover shadow-lg"
@@ -617,7 +664,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
 
           if (interaction.type === 'MAP') {
             return (
-              <div key={interaction.id} className="absolute pointer-events-auto" style={posStyle}>
+              <div key={interaction.id} className={cn('absolute pointer-events-auto', enterAnimationClass(interaction.config?.animation))} style={posStyle}>
                 <iframe
                   title="Harita"
                   src={mapEmbedSrc(interaction.config)}
@@ -635,7 +682,10 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
               key={interaction.id}
               data-testid={`interaction-${interaction.id}`}
               aria-label={getInteractionLabel(interaction)}
-              className="absolute pointer-events-auto cursor-pointer border-0 bg-transparent p-0 text-left transition-opacity"
+              className={cn(
+                'absolute pointer-events-auto cursor-pointer border-0 bg-transparent p-0 text-left transition-opacity',
+                enterAnimationClass(interaction.config?.animation)
+              )}
               style={posStyle}
               onClick={(e) => handleInteractionClick(e, interaction)}
             >
@@ -865,11 +915,16 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
               </div>
             )}
           </div>
-          <Button onClick={resumeFromInsert} className="shadow-lg">
-            {activeInsert.type === 'VIDEO_CLIP' || activeInsert.type === 'AUDIO_CLIP'
-              ? 'Atla ve Devam Et'
-              : 'Devam Et'}
-          </Button>
+          {(activeInsert.type === 'VIDEO_CLIP' || activeInsert.type === 'AUDIO_CLIP') && activeInsert.config.required ? (
+            <p className="text-sm text-white/80">Devam etmek için sonuna kadar izleyin…</p>
+          ) : (
+            <Button onClick={resumeFromInsert} disabled={insertCountdown > 0} className="shadow-lg">
+              {activeInsert.type === 'VIDEO_CLIP' || activeInsert.type === 'AUDIO_CLIP'
+                ? 'Atla ve Devam Et'
+                : 'Devam Et'}
+              {insertCountdown > 0 ? ` (${insertCountdown}s)` : ''}
+            </Button>
+          )}
         </div>
       )}
 
