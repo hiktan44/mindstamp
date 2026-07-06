@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle2, ExternalLink, Menu, RotateCcw, X } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Menu, Music, RotateCcw, X } from 'lucide-react'
 import { applyVariableAssignments, evaluateRuntimeConditions, type RuntimeVariables } from '@/lib/video/runtime'
 
 interface Interaction {
@@ -95,6 +95,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   const [activeInsert, setActiveInsert] = useState<Interaction | null>(null)
   const consumedInsertsRef = useRef<Set<string>>(new Set())
   const insertVideoRef = useRef<HTMLVideoElement | null>(null)
+  const insertAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const [leadForm, setLeadForm] = useState({ name: '', email: '', phone: '' })
   const [isSubmittingLead, setIsSubmittingLead] = useState(false)
@@ -389,10 +390,20 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   }
 
   const handleQuestionContinue = () => {
+    const q = activeQuestion
+    const answer = questionAnswer
     setActiveQuestion(null)
     setQuestionAnswer(null)
     setQuestionResult(null)
     const videoEl = document.querySelector('video')
+    // Branching: if the chosen option has a target time, jump there.
+    if (q && typeof answer === 'string') {
+      const idx = (q.config.options || []).indexOf(answer)
+      const branch = q.config.branches?.[idx]
+      if (videoEl && typeof branch === 'number' && Number.isFinite(branch)) {
+        videoEl.currentTime = branch
+      }
+    }
     if (videoEl) videoEl.play().catch(() => null)
   }
 
@@ -421,10 +432,13 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     playVideo()
   }
 
-  // Autoplay the inserted video when the insert modal opens.
+  // Autoplay the inserted video/audio when the insert modal opens.
   useEffect(() => {
     if (activeInsert?.type === 'VIDEO_CLIP' && insertVideoRef.current) {
       insertVideoRef.current.play().catch(() => null)
+    }
+    if (activeInsert?.type === 'AUDIO_CLIP' && insertAudioRef.current) {
+      insertAudioRef.current.play().catch(() => null)
     }
   }, [activeInsert])
 
@@ -435,6 +449,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     const insert = interactions.find(
       (i) =>
         i.config?.pauseMainVideo &&
+        // media inserts need a source; a map only needs an address/embed
+        (i.type === 'MAP' || i.config?.url) &&
         !consumedInsertsRef.current.has(i.id) &&
         currentTime >= i.startTime &&
         currentTime < i.startTime + 1.5
@@ -834,9 +850,25 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                 referrerPolicy="no-referrer-when-downgrade"
               />
             )}
+            {activeInsert.type === 'AUDIO_CLIP' && activeInsert.config.url && (
+              <div className="flex flex-col items-center gap-4 rounded-xl bg-white/10 p-8 text-white">
+                <Music className="h-12 w-12 opacity-90" />
+                <p className="text-lg font-medium">{activeInsert.config.title || 'Ses çalınıyor'}</p>
+                <audio
+                  ref={insertAudioRef}
+                  src={activeInsert.config.url}
+                  controls
+                  autoPlay
+                  onEnded={resumeFromInsert}
+                  className="w-full max-w-md"
+                />
+              </div>
+            )}
           </div>
           <Button onClick={resumeFromInsert} className="shadow-lg">
-            {activeInsert.type === 'VIDEO_CLIP' ? 'Atla ve Devam Et' : 'Devam Et'}
+            {activeInsert.type === 'VIDEO_CLIP' || activeInsert.type === 'AUDIO_CLIP'
+              ? 'Atla ve Devam Et'
+              : 'Devam Et'}
           </Button>
         </div>
       )}

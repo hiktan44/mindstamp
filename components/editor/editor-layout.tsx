@@ -50,8 +50,10 @@ import {
   Image as ImageIcon,
   HelpCircle,
   Layers,
+  CheckCircle2,
   Film,
   MapPin,
+  Music,
   Bold,
   Italic,
   Underline,
@@ -65,7 +67,7 @@ import { cn } from '@/lib/utils'
 
 interface Interaction {
   id: string
-  type: 'BUTTON' | 'HOTSPOT' | 'QUESTION' | 'TEXT' | 'IMAGE' | 'VIDEO_CLIP' | 'MAP'
+  type: 'BUTTON' | 'HOTSPOT' | 'QUESTION' | 'TEXT' | 'IMAGE' | 'VIDEO_CLIP' | 'AUDIO_CLIP' | 'MAP'
   startTime: number
   endTime?: number
   config: any
@@ -96,6 +98,7 @@ const interactionTypes = [
   { type: 'TEXT', label: 'Metin', icon: Type, description: 'Renkli, stillendirilebilir metin ekleyin' },
   { type: 'IMAGE', label: 'Resim', icon: ImageIcon, description: 'Resim yükleyin veya URL ekleyin' },
   { type: 'VIDEO_CLIP', label: 'Video', icon: Film, description: 'Video klip yükleyin veya URL ekleyin' },
+  { type: 'AUDIO_CLIP', label: 'Ses', icon: Music, description: 'Ses klibi ekleyin (araya)' },
   { type: 'MAP', label: 'Harita', icon: MapPin, description: 'Konum haritası ekleyin' },
 ]
 
@@ -138,6 +141,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
   const [dragInfo, setDragInfo] = useState<{ id: string, startX: number, startY: number, startPosX: number, startPosY: number } | null>(null)
+  const [resizeInfo, setResizeInfo] = useState<{ id: string, corner: 'nw' | 'ne' | 'sw' | 'se', startX: number, startY: number, startW: number, startH: number } | null>(null)
 
   useEffect(() => {
     if (!dragInfo) return;
@@ -176,6 +180,40 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       window.removeEventListener('pointerup', onPointerUp);
     }
   }, [dragInfo, selectedInteraction]);
+
+  // Resize (drag a corner handle). Element is centered on (x,y) so each corner
+  // moves the size by 2x the pointer delta to track the cursor.
+  useEffect(() => {
+    if (!resizeInfo) return;
+
+    const onPointerMove = (e: PointerEvent) => {
+      const dx = e.clientX - resizeInfo.startX;
+      const dy = e.clientY - resizeInfo.startY;
+      const signX = resizeInfo.corner === 'ne' || resizeInfo.corner === 'se' ? 1 : -1;
+      const signY = resizeInfo.corner === 'sw' || resizeInfo.corner === 'se' ? 1 : -1;
+      const newW = Math.max(24, Math.round(resizeInfo.startW + signX * 2 * dx));
+      const newH = Math.max(24, Math.round(resizeInfo.startH + signY * 2 * dy));
+
+      setInteractions(prev => prev.map(i => {
+        if (i.id === resizeInfo.id && i.position) {
+          const next = { ...i, position: { ...i.position, width: newW, height: newH } };
+          if (selectedInteraction?.id === i.id) setSelectedInteraction(next);
+          return next;
+        }
+        return i;
+      }));
+      setHasChanges(true);
+    };
+
+    const onPointerUp = () => setResizeInfo(null);
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    }
+  }, [resizeInfo, selectedInteraction]);
 
   useEffect(() => {
     onDirtyChange?.(hasChanges)
@@ -243,6 +281,8 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
         return { width: 280, height: 200 }
       case 'VIDEO_CLIP':
         return { width: 360, height: 203 }
+      case 'AUDIO_CLIP':
+        return { width: 260, height: 64 }
       case 'MAP':
         return { width: 360, height: 260 }
       case 'HOTSPOT':
@@ -375,6 +415,12 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
           muted: false,
           loop: false,
           controls: true,
+        }
+      case 'AUDIO_CLIP':
+        return {
+          url: '',
+          title: 'Ses klibi',
+          pauseMainVideo: true, // araya ekle: ana video durur, ses biter, devam eder
         }
       case 'MAP':
         return {
@@ -645,6 +691,35 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
                 >
                   {/* Preview content based on type */}
                   <InteractionVisual interaction={interaction} />
+
+                  {/* Resize handles (only for the selected item, when not playing) */}
+                  {selectedInteraction?.id === interaction.id && !isPlaying &&
+                    (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
+                      <div
+                        key={corner}
+                        className={cn(
+                          'absolute h-3 w-3 rounded-full border-2 border-primary bg-white shadow',
+                          corner === 'nw' && '-left-1.5 -top-1.5 cursor-nwse-resize',
+                          corner === 'ne' && '-right-1.5 -top-1.5 cursor-nesw-resize',
+                          corner === 'sw' && '-bottom-1.5 -left-1.5 cursor-nesw-resize',
+                          corner === 'se' && '-bottom-1.5 -right-1.5 cursor-nwse-resize'
+                        )}
+                        onPointerDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          if (isPlaying || !interaction.position) return
+                          setSelectedInteraction(interaction)
+                          setResizeInfo({
+                            id: interaction.id,
+                            corner,
+                            startX: e.clientX,
+                            startY: e.clientY,
+                            startW: interaction.position.width,
+                            startH: interaction.position.height,
+                          })
+                        }}
+                      />
+                    ))}
                 </div>
               )
             })}
@@ -876,9 +951,22 @@ function InteractionSettings({
               />
             </div>
             <div className="space-y-2">
-              <Label>Seçenekler</Label>
+              <div className="flex items-center justify-between">
+                <Label>Seçenekler</Label>
+                <span className="text-[11px] text-muted-foreground">✓ doğru · → dallanma (sn)</span>
+              </div>
               {interaction.config.options?.map((option: string, index: number) => (
-                <div key={index} className="flex gap-2">
+                <div key={index} className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={index === interaction.config.correctAnswer ? 'default' : 'outline'}
+                    className="h-9 w-9 shrink-0"
+                    title="Doğru cevap yap"
+                    onClick={() => updateConfig('correctAnswer', index)}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
                   <Input
                     value={option}
                     onChange={(e) => {
@@ -887,30 +975,56 @@ function InteractionSettings({
                       updateConfig('options', newOptions)
                     }}
                   />
-                  <Badge variant={index === interaction.config.correctAnswer ? 'default' : 'secondary'}>
-                    {index === interaction.config.correctAnswer ? '✓' : ''}
-                  </Badge>
+                  <Input
+                    type="number"
+                    className="w-20 shrink-0"
+                    placeholder="→ sn"
+                    title="Bu seçenek seçilince gidilecek saniye (dallanma)"
+                    value={interaction.config.branches?.[index] ?? ''}
+                    onChange={(e) => {
+                      const branches = [...(interaction.config.branches || [])]
+                      branches[index] = e.target.value === '' ? null : Number(e.target.value)
+                      updateConfig('branches', branches)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 shrink-0 text-destructive"
+                    title="Seçeneği sil"
+                    onClick={() => {
+                      const options = interaction.config.options.filter((_: string, i: number) => i !== index)
+                      const branches = (interaction.config.branches || []).filter((_: any, i: number) => i !== index)
+                      let correctAnswer = interaction.config.correctAnswer ?? 0
+                      if (correctAnswer === index) correctAnswer = 0
+                      else if (correctAnswer > index) correctAnswer -= 1
+                      onChange({ config: { ...interaction.config, options, branches, correctAnswer } })
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
-            </div>
-            <div className="space-y-2">
-              <Label>Doğru Cevap</Label>
-              <Select
-                value={interaction.config.correctAnswer.toString()}
-                onValueChange={(value) => updateConfig('correctAnswer', parseInt(value))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() =>
+                  updateConfig('options', [
+                    ...(interaction.config.options || []),
+                    `Seçenek ${(interaction.config.options?.length || 0) + 1}`,
+                  ])
+                }
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {interaction.config.options?.map((_: string, index: number) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      Seçenek {index + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Plus className="mr-2 h-4 w-4" />
+                Seçenek Ekle
+              </Button>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Bir seçeneğe saniye yazarsanız, izleyici o seçeneği işaretleyip devam ettiğinde video o saniyeye atlar (dallanma).
+            </p>
           </>
         )}
 
@@ -990,6 +1104,33 @@ function InteractionSettings({
                 <ToggleField label="Kontroller" checked={!!interaction.config.controls} onChange={(v) => updateConfig('controls', v)} />
               </div>
             )}
+          </div>
+        )}
+
+        {interaction.type === 'AUDIO_CLIP' && (
+          <div className="space-y-3">
+            <Label>Ses klibi</Label>
+            <AssetUpload accept="audio/*" label="Ses Yükle" onUploaded={(url) => updateConfig('url', url)} />
+            <Input
+              value={interaction.config.url || ''}
+              onChange={(e) => updateConfig('url', e.target.value)}
+              placeholder="veya https://... ses (mp3) URL"
+            />
+            <div className="space-y-2">
+              <Label>Başlık</Label>
+              <Input
+                value={interaction.config.title || ''}
+                onChange={(e) => updateConfig('title', e.target.value)}
+                placeholder="örn: Seslendirme"
+              />
+            </div>
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <ToggleField
+                label="Araya ekle — ana video dursun, ses çalsın, bitince devam etsin"
+                checked={interaction.config.pauseMainVideo !== false}
+                onChange={(v) => updateConfig('pauseMainVideo', v)}
+              />
+            </div>
           </div>
         )}
 
@@ -1631,6 +1772,13 @@ function InteractionVisual({
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-white/40 bg-black/40 text-xs text-white/70">
           Video seçin
+        </div>
+      )
+    case 'AUDIO_CLIP':
+      return (
+        <div className="flex h-full w-full items-center gap-2 rounded-lg bg-black/70 px-3 text-white">
+          <Music className="h-4 w-4 shrink-0" />
+          <span className="truncate text-sm">{c.title || 'Ses klibi'}</span>
         </div>
       )
     case 'MAP':
