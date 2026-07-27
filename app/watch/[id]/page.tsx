@@ -137,12 +137,12 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
             {/* Stats */}
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 text-sky-500" />
                 <span>{video.viewCount || 0} görüntülenme</span>
               </div>
               {video.duration && (
                 <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-4 w-4 text-violet-500" />
                   <span>{Math.floor(video.duration / 60)}:{Math.floor(video.duration % 60).toString().padStart(2, '0')}</span>
                 </div>
               )}
@@ -163,7 +163,10 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
             {(video.interactions?.length || 0) > 0 && (
               <Card>
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-3">Etkileşimler</h3>
+                  <h3 className="mb-3 flex items-center gap-2 font-semibold">
+                    <span className="h-4 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-fuchsia-500" />
+                    Etkileşimler
+                  </h3>
                   <div className="space-y-2">
                     {video.interactions.map((interaction: any, index: number) => {
                       const time = Math.floor(interaction.startTime)
@@ -172,7 +175,7 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
 
                       return (
                         <SeekButton key={interaction.id} time={interaction.startTime}>
-                          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10 text-xs font-mono">
+                          <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-xs font-mono shadow-sm">
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -200,7 +203,10 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
             {video.chapters && video.chapters.length > 0 && (
               <Card>
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-3">Bölümler</h3>
+                  <h3 className="mb-3 flex items-center gap-2 font-semibold">
+                    <span className="h-4 w-1 rounded-full bg-gradient-to-b from-sky-500 to-emerald-500" />
+                    Bölümler
+                  </h3>
                   <div className="space-y-2">
                     {video.chapters.map((chapter: any) => {
                       const time = Math.floor(chapter.startTime)

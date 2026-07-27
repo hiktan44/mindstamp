@@ -225,6 +225,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   const containerRef = useRef<HTMLDivElement>(null)
   const [dragInfo, setDragInfo] = useState<{ id: string, startX: number, startY: number, startPosX: number, startPosY: number } | null>(null)
   const [resizeInfo, setResizeInfo] = useState<{ id: string, corner: 'nw' | 'ne' | 'sw' | 'se', startX: number, startY: number, startW: number, startH: number } | null>(null)
+  const [snapGuides, setSnapGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false })
 
   useEffect(() => {
     if (!dragInfo) return;
@@ -238,9 +239,16 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       // Find current interaction state from ref
       setInteractions(prev => prev.map(i => {
         if (i.id === dragInfo.id && i.position) {
-          const newX = Math.max(0, Math.min(100, dragInfo.startPosX + deltaX));
-          const newY = Math.max(0, Math.min(100, dragInfo.startPosY + deltaY));
-          
+          let newX = Math.max(0, Math.min(100, dragInfo.startPosX + deltaX));
+          let newY = Math.max(0, Math.min(100, dragInfo.startPosY + deltaY));
+
+          // Snap to canvas center with alignment guides
+          const showV = Math.abs(newX - 50) < 2.5;
+          const showH = Math.abs(newY - 50) < 2.5;
+          if (showV) newX = 50;
+          if (showH) newY = 50;
+          setSnapGuides({ v: showV, h: showH });
+
           if (selectedInteraction?.id === i.id) {
             setSelectedInteraction({ ...i, position: { ...i.position, x: newX, y: newY } });
           }
@@ -253,6 +261,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
 
     const onPointerUp = () => {
       setDragInfo(null);
+      setSnapGuides({ v: false, h: false });
     };
 
     window.addEventListener('pointermove', onPointerMove);
@@ -837,6 +846,14 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
               )
             })}
           </div>
+
+          {/* Alignment guides */}
+          {snapGuides.v && (
+            <div className="pointer-events-none absolute left-1/2 top-0 z-30 h-full w-px -translate-x-1/2 bg-fuchsia-500/80" />
+          )}
+          {snapGuides.h && (
+            <div className="pointer-events-none absolute left-0 top-1/2 z-30 h-px w-full -translate-y-1/2 bg-fuchsia-500/80" />
+          )}
         </div>
 
         {/* Video Controls */}

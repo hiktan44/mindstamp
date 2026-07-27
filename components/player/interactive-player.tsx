@@ -324,9 +324,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         i.position &&
         i.config?.exitAnimation &&
         i.config.exitAnimation !== 'none' &&
-        !i.config?.pauseMainVideo &&
-        i.type !== 'VIDEO_CLIP' &&
-        i.type !== 'MAP'
+        !i.config?.pauseMainVideo
     )
     if (gone.length) {
       setLeavingInteractions((cur) => {
@@ -733,14 +731,23 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
           // Media overlays are interactive themselves (not click-to-action buttons)
           if (interaction.type === 'VIDEO_CLIP') {
             return interaction.config.url ? (
-              <div key={interaction.id} className={cn('absolute pointer-events-auto', enterAnimationClass(interaction.config?.animation))} style={posStyle}>
+              <div
+                key={leaving ? `${interaction.id}-leaving` : interaction.id}
+                className={cn(
+                  'absolute',
+                  leaving
+                    ? cn('pointer-events-none', exitAnimationClass(interaction.config?.exitAnimation))
+                    : cn('pointer-events-auto', enterAnimationClass(interaction.config?.animation))
+                )}
+                style={posStyle}
+              >
                 <video
                   src={interaction.config.url}
                   className="h-full w-full rounded-lg object-cover shadow-lg"
-                  autoPlay={interaction.config.autoplay}
+                  autoPlay={leaving ? false : interaction.config.autoplay}
                   muted={interaction.config.muted}
                   loop={interaction.config.loop}
-                  controls={interaction.config.controls}
+                  controls={leaving ? false : interaction.config.controls}
                   playsInline
                 />
               </div>
@@ -749,7 +756,16 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
 
           if (interaction.type === 'MAP') {
             return (
-              <div key={interaction.id} className={cn('absolute pointer-events-auto', enterAnimationClass(interaction.config?.animation))} style={posStyle}>
+              <div
+                key={leaving ? `${interaction.id}-leaving` : interaction.id}
+                className={cn(
+                  'absolute',
+                  leaving
+                    ? cn('pointer-events-none', exitAnimationClass(interaction.config?.exitAnimation))
+                    : cn('pointer-events-auto', enterAnimationClass(interaction.config?.animation))
+                )}
+                style={posStyle}
+              >
                 <iframe
                   title="Harita"
                   src={mapEmbedSrc(interaction.config)}
