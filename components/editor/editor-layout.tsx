@@ -121,6 +121,40 @@ const enterAnimations = [
   { value: 'zoom', label: 'Yakınlaş' },
 ]
 
+const shadowOptions = [
+  { value: 'none', label: 'Yok' },
+  { value: 'sm', label: 'Hafif' },
+  { value: 'md', label: 'Orta' },
+  { value: 'lg', label: 'Güçlü' },
+  { value: 'glow', label: 'Parlama' },
+]
+
+export function shadowValue(s?: string): string | undefined {
+  switch (s) {
+    case 'sm':
+      return '0 1px 3px rgba(0,0,0,0.3)'
+    case 'md':
+      return '0 4px 12px rgba(0,0,0,0.3)'
+    case 'lg':
+      return '0 10px 30px rgba(0,0,0,0.45)'
+    case 'glow':
+      return '0 0 22px rgba(59,130,246,0.75)'
+    case 'none':
+      return 'none'
+    default:
+      return undefined
+  }
+}
+
+export function decorStyle(style: any = {}): React.CSSProperties {
+  return {
+    boxShadow: shadowValue(style?.boxShadow),
+    border: style?.borderWidth
+      ? `${style.borderWidth}px solid ${style.borderColor || '#ffffff'}`
+      : undefined,
+  }
+}
+
 export function enterAnimationClass(anim?: string): string {
   switch (anim) {
     case 'fade':
@@ -135,6 +169,25 @@ export function enterAnimationClass(anim?: string): string {
       return 'animate-in slide-in-from-left-6 fade-in duration-500'
     case 'zoom':
       return 'animate-in zoom-in-95 fade-in duration-500'
+    default:
+      return ''
+  }
+}
+
+export function exitAnimationClass(anim?: string): string {
+  switch (anim) {
+    case 'fade':
+      return 'animate-out fade-out duration-500'
+    case 'slide-up':
+      return 'animate-out slide-out-to-top-6 fade-out duration-500'
+    case 'slide-down':
+      return 'animate-out slide-out-to-bottom-6 fade-out duration-500'
+    case 'slide-left':
+      return 'animate-out slide-out-to-left-6 fade-out duration-500'
+    case 'slide-right':
+      return 'animate-out slide-out-to-right-6 fade-out duration-500'
+    case 'zoom':
+      return 'animate-out zoom-out-95 fade-out duration-500'
     default:
       return ''
   }
@@ -1271,24 +1324,87 @@ function InteractionSettings({
       </TabsContent>
 
       <TabsContent value="style" className="space-y-4">
-        <div className="space-y-2">
-          <Label>Giriş Animasyonu</Label>
-          <Select
-            value={interaction.config.animation || 'none'}
-            onValueChange={(value) => updateConfig('animation', value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {enterAnimations.map((a) => (
-                <SelectItem key={a.value} value={a.value}>
-                  {a.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
+            <Label>Giriş Animasyonu</Label>
+            <Select
+              value={interaction.config.animation || 'none'}
+              onValueChange={(value) => updateConfig('animation', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {enterAnimations.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Çıkış Animasyonu</Label>
+            <Select
+              value={interaction.config.exitAnimation || 'none'}
+              onValueChange={(value) => updateConfig('exitAnimation', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {enterAnimations.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {interaction.type !== 'MAP' && interaction.type !== 'VIDEO_CLIP' && interaction.type !== 'AUDIO_CLIP' && (
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="space-y-2">
+              <Label>Gölge</Label>
+              <Select
+                value={interaction.config.style?.boxShadow || 'none'}
+                onValueChange={(value) => updateStyle('boxShadow', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {shadowOptions.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label>Kenarlık (px)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={interaction.config.style?.borderWidth || 0}
+                  onChange={(e) => updateStyle('borderWidth', Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kenar Rengi</Label>
+                <Input
+                  type="color"
+                  value={interaction.config.style?.borderColor || '#ffffff'}
+                  onChange={(e) => updateStyle('borderColor', e.target.value)}
+                  className="h-10 w-full"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {(interaction.type === 'BUTTON' || interaction.type === 'TEXT' || interaction.type === 'QUESTION') && (
           <>
@@ -1822,6 +1938,7 @@ function InteractionVisual({
             fontFamily: s.fontFamily,
             fontWeight: s.fontWeight,
             textAlign: s.textAlign || 'center',
+            ...decorStyle(s),
           }}
         >
           {c.text}
@@ -1845,6 +1962,7 @@ function InteractionVisual({
             justifyContent: s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start',
             whiteSpace: 'pre-wrap',
             overflow: 'hidden',
+            ...decorStyle(s),
           }}
         >
           <span className="w-full">{c.text}</span>
@@ -1866,7 +1984,7 @@ function InteractionVisual({
           src={c.url}
           alt={c.alt || ''}
           className="h-full w-full object-contain"
-          style={{ opacity: (c.opacity ?? 100) / 100 }}
+          style={{ opacity: (c.opacity ?? 100) / 100, ...decorStyle(s) }}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-white/40 bg-black/40 text-xs text-white/70">
@@ -1908,7 +2026,10 @@ function InteractionVisual({
       )
     case 'QUESTION':
       return (
-        <div className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md">
+        <div
+          className="flex h-full w-full items-center justify-center rounded-lg border bg-white px-3 text-center font-medium text-black shadow-md"
+          style={decorStyle(s)}
+        >
           {c.question || 'Soru'}
         </div>
       )

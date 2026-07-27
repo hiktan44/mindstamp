@@ -84,14 +84,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary mb-4">
-            <Video className="h-6 w-6 text-primary-foreground" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-lg shadow-fuchsia-500/20 mb-4">
+            <Video className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">Mindstamp Klonu</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+            Mindstamp Klonu
+          </h1>
           <p className="text-sm text-muted-foreground">
             Videolarınızı etkileşimli hale getirin
           </p>

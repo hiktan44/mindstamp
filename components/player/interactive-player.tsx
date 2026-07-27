@@ -88,6 +88,51 @@ function enterAnimationClass(anim?: string): string {
   }
 }
 
+function exitAnimationClass(anim?: string): string {
+  switch (anim) {
+    case 'fade':
+      return 'animate-out fade-out duration-500'
+    case 'slide-up':
+      return 'animate-out slide-out-to-top-6 fade-out duration-500'
+    case 'slide-down':
+      return 'animate-out slide-out-to-bottom-6 fade-out duration-500'
+    case 'slide-left':
+      return 'animate-out slide-out-to-left-6 fade-out duration-500'
+    case 'slide-right':
+      return 'animate-out slide-out-to-right-6 fade-out duration-500'
+    case 'zoom':
+      return 'animate-out zoom-out-95 fade-out duration-500'
+    default:
+      return ''
+  }
+}
+
+function shadowValue(s?: string): string | undefined {
+  switch (s) {
+    case 'sm':
+      return '0 1px 3px rgba(0,0,0,0.3)'
+    case 'md':
+      return '0 4px 12px rgba(0,0,0,0.3)'
+    case 'lg':
+      return '0 10px 30px rgba(0,0,0,0.45)'
+    case 'glow':
+      return '0 0 22px rgba(59,130,246,0.75)'
+    case 'none':
+      return 'none'
+    default:
+      return undefined
+  }
+}
+
+function decorStyle(style: any = {}): React.CSSProperties {
+  return {
+    boxShadow: shadowValue(style?.boxShadow),
+    border: style?.borderWidth
+      ? `${style.borderWidth}px solid ${style.borderColor || '#ffffff'}`
+      : undefined,
+  }
+}
+
 export function InteractivePlayer({ video, embed = false, playerOptions }: InteractivePlayerProps) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -260,6 +305,43 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       })
     })
   }, [analyticsContext, currentTime, video.id, visibleInteractions])
+
+  // Exit animations: keep an interaction briefly mounted after it stops being
+  // visible so its exit animation can play.
+  const visibleOverlayIds = useMemo(
+    () => new Set(visibleInteractions.filter((i) => !i.config?.pauseMainVideo).map((i) => i.id)),
+    [visibleInteractions]
+  )
+  const prevVisibleRef = useRef<Set<string>>(new Set())
+  const [leavingInteractions, setLeavingInteractions] = useState<Interaction[]>([])
+
+  useEffect(() => {
+    const prev = prevVisibleRef.current
+    const gone = interactions.filter(
+      (i) =>
+        prev.has(i.id) &&
+        !visibleOverlayIds.has(i.id) &&
+        i.position &&
+        i.config?.exitAnimation &&
+        i.config.exitAnimation !== 'none' &&
+        !i.config?.pauseMainVideo &&
+        i.type !== 'VIDEO_CLIP' &&
+        i.type !== 'MAP'
+    )
+    if (gone.length) {
+      setLeavingInteractions((cur) => {
+        const ids = new Set(cur.map((x) => x.id))
+        const add = gone.filter((g) => !ids.has(g.id))
+        return add.length ? [...cur, ...add] : cur
+      })
+      gone.forEach((g) => {
+        setTimeout(() => {
+          setLeavingInteractions((cur) => cur.filter((x) => x.id !== g.id))
+        }, 550)
+      })
+    }
+    prevVisibleRef.current = visibleOverlayIds
+  }, [visibleOverlayIds, interactions])
 
   const trackInteraction = (interaction: Interaction, eventType: 'click' | 'submit', data?: Record<string, any>) => {
     if (!analyticsContext) return
@@ -632,11 +714,14 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       {/* Interactions Overlay */}
       {!showLeadForm && (
         <div className="absolute inset-0 pointer-events-none z-10 p-2">
-        {visibleInteractions.map((interaction) => {
-          if (!interaction.position) return null
-          // "Araya ekle" items are shown as a modal insert, not a persistent overlay.
-          if (interaction.config?.pauseMainVideo) return null
-
+        {[
+          ...visibleInteractions
+            .filter((i) => !i.config?.pauseMainVideo && i.position)
+            .map((i) => ({ interaction: i, leaving: false })),
+          ...leavingInteractions
+            .filter((i) => !visibleOverlayIds.has(i.id) && i.position)
+            .map((i) => ({ interaction: i, leaving: true })),
+        ].map(({ interaction, leaving }) => {
           const posStyle: React.CSSProperties = {
             left: `${interaction.position.x}%`,
             top: `${interaction.position.y}%`,
@@ -679,15 +764,17 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
           return (
             <button
               type="button"
-              key={interaction.id}
+              key={leaving ? `${interaction.id}-leaving` : interaction.id}
               data-testid={`interaction-${interaction.id}`}
               aria-label={getInteractionLabel(interaction)}
               className={cn(
-                'absolute pointer-events-auto cursor-pointer border-0 bg-transparent p-0 text-left transition-opacity',
-                enterAnimationClass(interaction.config?.animation)
+                'absolute border-0 bg-transparent p-0 text-left transition-opacity',
+                leaving
+                  ? cn('pointer-events-none', exitAnimationClass(interaction.config?.exitAnimation))
+                  : cn('pointer-events-auto cursor-pointer', enterAnimationClass(interaction.config?.animation))
               )}
               style={posStyle}
-              onClick={(e) => handleInteractionClick(e, interaction)}
+              onClick={leaving ? undefined : (e) => handleInteractionClick(e, interaction)}
             >
               {interaction.type === 'BUTTON' && (
                 <div
@@ -700,6 +787,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                     fontFamily: interaction.config.style?.fontFamily,
                     fontWeight: interaction.config.style?.fontWeight,
                     textAlign: interaction.config.style?.textAlign || 'center',
+                    ...decorStyle(interaction.config.style),
                   }}
                 >
                   {interaction.config.text}
@@ -729,6 +817,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                           ? 'flex-end'
                           : 'flex-start',
                     whiteSpace: 'pre-wrap',
+                    ...decorStyle(interaction.config.style),
                   }}
                 >
                   <span className="w-full">{interaction.config.text}</span>
@@ -741,7 +830,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                   alt={interaction.config.alt || 'Interaction Image'}
                   className="w-full h-full object-contain"
                   style={{
-                    opacity: (interaction.config.opacity || 100) / 100
+                    opacity: (interaction.config.opacity || 100) / 100,
+                    ...decorStyle(interaction.config.style),
                   }}
                 />
               )}
@@ -759,6 +849,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
               {interaction.type === 'QUESTION' && (
                 <div
                   className="w-full h-full flex items-center justify-center text-center font-medium rounded-lg bg-white text-black shadow-md border"
+                  style={decorStyle(interaction.config.style)}
                 >
                   {interaction.config.question || 'Soru'}
                 </div>
