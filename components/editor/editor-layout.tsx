@@ -62,6 +62,8 @@ import {
   AlignRight,
   Upload,
   Loader2,
+  Undo2,
+  Redo2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -225,7 +227,40 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   const containerRef = useRef<HTMLDivElement>(null)
   const [dragInfo, setDragInfo] = useState<{ id: string, startX: number, startY: number, startPosX: number, startPosY: number } | null>(null)
   const [resizeInfo, setResizeInfo] = useState<{ id: string, corner: 'nw' | 'ne' | 'sw' | 'se', startX: number, startY: number, startW: number, startH: number } | null>(null)
-  const [snapGuides, setSnapGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false })
+  const [snapGuides, setSnapGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
+
+  // Undo / redo history (debounced snapshots of `interactions`)
+  const historyRef = useRef<{ stack: Interaction[][]; index: number }>({
+    stack: [initialVideo?.interactions || []],
+    index: 0,
+  })
+  const [histState, setHistState] = useState({ canUndo: false, canRedo: false })
+  const syncHist = () => {
+    const h = historyRef.current
+    setHistState({ canUndo: h.index > 0, canRedo: h.index < h.stack.length - 1 })
+  }
+  const suppressHistoryRef = useRef(false)
+
+  const undo = () => {
+    const h = historyRef.current
+    if (h.index <= 0) return
+    h.index -= 1
+    suppressHistoryRef.current = true
+    setInteractions(h.stack[h.index])
+    setSelectedInteraction(null)
+    setHasChanges(true)
+    syncHist()
+  }
+  const redo = () => {
+    const h = historyRef.current
+    if (h.index >= h.stack.length - 1) return
+    h.index += 1
+    suppressHistoryRef.current = true
+    setInteractions(h.stack[h.index])
+    setSelectedInteraction(null)
+    setHasChanges(true)
+    syncHist()
+  }
 
   useEffect(() => {
     if (!dragInfo) return;
@@ -236,32 +271,37 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       const deltaX = ((e.clientX - dragInfo.startX) / rect.width) * 100;
       const deltaY = ((e.clientY - dragInfo.startY) / rect.height) * 100;
 
-      // Find current interaction state from ref
-      setInteractions(prev => prev.map(i => {
-        if (i.id === dragInfo.id && i.position) {
-          let newX = Math.max(0, Math.min(100, dragInfo.startPosX + deltaX));
-          let newY = Math.max(0, Math.min(100, dragInfo.startPosY + deltaY));
+      const threshold = 2.5;
 
-          // Snap to canvas center with alignment guides
-          const showV = Math.abs(newX - 50) < 2.5;
-          const showH = Math.abs(newY - 50) < 2.5;
-          if (showV) newX = 50;
-          if (showH) newY = 50;
-          setSnapGuides({ v: showV, h: showH });
+      setInteractions(prev => {
+        const others = prev.filter(o => o.id !== dragInfo.id && o.position);
+        const xTargets = [50, ...others.map(o => o.position!.x)];
+        const yTargets = [50, ...others.map(o => o.position!.y)];
+        return prev.map(i => {
+          if (i.id === dragInfo.id && i.position) {
+            let newX = Math.max(0, Math.min(100, dragInfo.startPosX + deltaX));
+            let newY = Math.max(0, Math.min(100, dragInfo.startPosY + deltaY));
 
-          if (selectedInteraction?.id === i.id) {
-            setSelectedInteraction({ ...i, position: { ...i.position, x: newX, y: newY } });
+            let guideX: number | null = null;
+            let guideY: number | null = null;
+            for (const t of xTargets) { if (Math.abs(newX - t) < threshold) { newX = t; guideX = t; break; } }
+            for (const t of yTargets) { if (Math.abs(newY - t) < threshold) { newY = t; guideY = t; break; } }
+            setSnapGuides({ x: guideX, y: guideY });
+
+            if (selectedInteraction?.id === i.id) {
+              setSelectedInteraction({ ...i, position: { ...i.position, x: newX, y: newY } });
+            }
+            return { ...i, position: { ...i.position, x: newX, y: newY } };
           }
-          return { ...i, position: { ...i.position, x: newX, y: newY } };
-        }
-        return i;
-      }));
+          return i;
+        });
+      });
       setHasChanges(true);
     };
 
     const onPointerUp = () => {
       setDragInfo(null);
-      setSnapGuides({ v: false, h: false });
+      setSnapGuides({ x: null, y: null });
     };
 
     window.addEventListener('pointermove', onPointerMove);
@@ -310,6 +350,69 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   useEffect(() => {
     onDirtyChange?.(hasChanges)
   }, [hasChanges, onDirtyChange])
+
+  // Keep the latest selection in a ref for the (once-registered) keyboard handler.
+  const selectedRef = useRef<Interaction | null>(null)
+  useEffect(() => {
+    selectedRef.current = selectedInteraction
+  }, [selectedInteraction])
+
+  // Debounced history snapshots so drag/typing collapse into a single undo step.
+  useEffect(() => {
+    if (suppressHistoryRef.current) {
+      suppressHistoryRef.current = false
+      syncHist()
+      return
+    }
+    const t = setTimeout(() => {
+      const h = historyRef.current
+      const top = h.stack[h.index]
+      if (JSON.stringify(top) !== JSON.stringify(interactions)) {
+        h.stack = h.stack.slice(0, h.index + 1)
+        h.stack.push(interactions)
+        h.index = h.stack.length - 1
+        syncHist()
+      }
+    }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactions])
+
+  // Keyboard shortcuts: undo/redo, delete, duplicate.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      const mod = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+
+      if (mod && key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+        return
+      }
+      if (mod && key === 'y') {
+        e.preventDefault()
+        redo()
+        return
+      }
+      if (typing) return
+      const sel = selectedRef.current
+      if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
+        e.preventDefault()
+        handleDeleteInteraction(sel.id)
+        return
+      }
+      if (mod && key === 'd' && sel) {
+        e.preventDefault()
+        handleDuplicateInteraction(sel)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSave = async () => {
     setSaving(true)
@@ -400,10 +503,8 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   }
 
   const handleDeleteInteraction = (id: string) => {
-    setInteractions(interactions.filter((i) => i.id !== id))
-    if (selectedInteraction?.id === id) {
-      setSelectedInteraction(null)
-    }
+    setInteractions((prev) => prev.filter((i) => i.id !== id))
+    setSelectedInteraction((cur) => (cur?.id === id ? null : cur))
     setHasChanges(true)
   }
 
@@ -413,11 +514,11 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
       id: `inter-${Date.now()}`,
       position: {
         ...interaction.position!,
-        x: interaction.position!.x + 20,
-        y: interaction.position!.y + 20,
+        x: Math.min(100, interaction.position!.x + 6),
+        y: Math.min(100, interaction.position!.y + 6),
       },
     }
-    setInteractions([...interactions, newInteraction])
+    setInteractions((prev) => [...prev, newInteraction])
     setSelectedInteraction(newInteraction)
     setHasChanges(true)
   }
@@ -847,12 +948,18 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             })}
           </div>
 
-          {/* Alignment guides */}
-          {snapGuides.v && (
-            <div className="pointer-events-none absolute left-1/2 top-0 z-30 h-full w-px -translate-x-1/2 bg-fuchsia-500/80" />
+          {/* Alignment guides (canvas center + other elements) */}
+          {snapGuides.x != null && (
+            <div
+              className="pointer-events-none absolute top-0 z-30 h-full w-px -translate-x-1/2 bg-fuchsia-500/80"
+              style={{ left: `${snapGuides.x}%` }}
+            />
           )}
-          {snapGuides.h && (
-            <div className="pointer-events-none absolute left-0 top-1/2 z-30 h-px w-full -translate-y-1/2 bg-fuchsia-500/80" />
+          {snapGuides.y != null && (
+            <div
+              className="pointer-events-none absolute left-0 z-30 h-px w-full -translate-y-1/2 bg-fuchsia-500/80"
+              style={{ top: `${snapGuides.y}%` }}
+            />
           )}
         </div>
 
@@ -894,6 +1001,26 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             }}
           >
             <SkipForward className="h-4 w-4" />
+          </Button>
+
+          <Separator orientation="vertical" className="mx-1 h-6" />
+          <Button
+            size="icon"
+            variant="outline"
+            title="Geri Al (Ctrl+Z)"
+            disabled={!histState.canUndo}
+            onClick={undo}
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            title="Yinele (Ctrl+Shift+Z)"
+            disabled={!histState.canRedo}
+            onClick={redo}
+          >
+            <Redo2 className="h-4 w-4" />
           </Button>
 
           <div className="flex-1 px-4">

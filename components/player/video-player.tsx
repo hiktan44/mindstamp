@@ -36,6 +36,10 @@ interface VideoPlayerProps {
   onEnded?: () => void
 }
 
+// Stable reference so an omitted `captions` prop doesn't create a new array each
+// render (which would re-run the caption effect and loop setState).
+const EMPTY_CAPTIONS: NonNullable<VideoPlayerProps['captions']> = []
+
 export function VideoPlayer({
   src,
   poster,
@@ -44,7 +48,7 @@ export function VideoPlayer({
   muted = false,
   controls = true,
   startTime = 0,
-  captions = [],
+  captions = EMPTY_CAPTIONS,
   onTimeUpdate,
   onDurationChange,
   onPlay,
