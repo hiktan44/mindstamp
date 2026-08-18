@@ -63,8 +63,24 @@ export default function RegisterPage() {
         return
       }
 
+      // Hesap oluşturuldu; şimdi oturumu gerçekten aç.
+      const { signIn } = await import('next-auth/react')
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        // Hesap açıldı ama otomatik giriş başarısız; kullanıcıyı giriş sayfasına yönlendir.
+        toast.success('Kayıt başarılı! Lütfen giriş yapın.')
+        router.push('/giris')
+        return
+      }
+
       toast.success('Kayıt başarılı! Giriş yapıldı.')
       router.push('/dashboard')
+      router.refresh()
     } catch (error) {
       setError('Bir hata oluştu')
     } finally {

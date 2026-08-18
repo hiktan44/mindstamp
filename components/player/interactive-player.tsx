@@ -4,6 +4,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { VideoPlayer } from './video-player'
+import type { PlayerHandle } from './player-handle'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -161,6 +162,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   const consumedInsertsRef = useRef<Set<string>>(new Set())
   const insertVideoRef = useRef<HTMLVideoElement | null>(null)
   const insertAudioRef = useRef<HTMLAudioElement | null>(null)
+  // Ana oynatıcı kontrolü (native <video> ya da YouTube/Vimeo embed) tek handle üzerinden.
+  const mainPlayerRef = useRef<PlayerHandle>(null)
 
   const [leadForm, setLeadForm] = useState({ name: '', email: '', phone: '' })
   const [isSubmittingLead, setIsSubmittingLead] = useState(false)
@@ -226,6 +229,19 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     return () => window.clearInterval(interval)
   }, [analyticsContext, currentTime, duration, video.id])
 
+  // Kenar çubuğundaki SeekButton / bölüm butonlarından gelen seek isteklerini dinle.
+  useEffect(() => {
+    const handleSeek = (e: Event) => {
+      const time = (e as CustomEvent<{ time?: number }>).detail?.time
+      if (typeof time === 'number' && Number.isFinite(time)) {
+        mainPlayerRef.current?.seek(time)
+        mainPlayerRef.current?.play()
+      }
+    }
+    window.addEventListener('mindstamp:seek', handleSeek)
+    return () => window.removeEventListener('mindstamp:seek', handleSeek)
+  }, [])
+
   // Track lead capture timing
   useEffect(() => {
     if (!video.settings?.leadCapture?.enabled || hasSubmittedLead) return
@@ -234,8 +250,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     if (currentTime >= targetTime && !showLeadForm) {
       setShowLeadForm(true)
       // Pause video
-      const videoEl = document.querySelector('video')
-      if (videoEl) videoEl.pause()
+      mainPlayerRef.current?.pause()
     }
   }, [currentTime, video.settings, hasSubmittedLead, showLeadForm])
 
@@ -257,8 +272,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       setShowLeadForm(false)
       
       // Resume video
-      const videoEl = document.querySelector('video')
-      if (videoEl) videoEl.play()
+      mainPlayerRef.current?.play()
     } catch (err) {
       console.error(err)
     } finally {
@@ -378,13 +392,11 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
   }
 
   const playVideo = () => {
-    const videoEl = document.querySelector('video')
-    if (videoEl) videoEl.play().catch(() => null)
+    mainPlayerRef.current?.play()
   }
 
   const pauseVideo = () => {
-    const videoEl = document.querySelector('video')
-    if (videoEl) videoEl.pause()
+    mainPlayerRef.current?.pause()
   }
 
   const handleInteractionClick = (e: React.MouseEvent, interaction: Interaction) => {
@@ -434,11 +446,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         break
       case 'CHANGE_TIME': {
         if (interaction.config.targetTime !== undefined) {
-          const videoElTime = document.querySelector('video')
-          if (videoElTime) {
-            videoElTime.currentTime = Number(interaction.config.targetTime)
-            videoElTime.play().catch(() => null)
-          }
+          mainPlayerRef.current?.seek(Number(interaction.config.targetTime))
+          mainPlayerRef.current?.play()
         }
         break
       }
@@ -495,16 +504,15 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
     setActiveQuestion(null)
     setQuestionAnswer(null)
     setQuestionResult(null)
-    const videoEl = document.querySelector('video')
     // Branching: if the chosen option has a target time, jump there.
     if (q && typeof answer === 'string') {
       const idx = (q.config.options || []).indexOf(answer)
       const branch = q.config.branches?.[idx]
-      if (videoEl && typeof branch === 'number' && Number.isFinite(branch)) {
-        videoEl.currentTime = branch
+      if (typeof branch === 'number' && Number.isFinite(branch)) {
+        mainPlayerRef.current?.seek(branch)
       }
     }
-    if (videoEl) videoEl.play().catch(() => null)
+    mainPlayerRef.current?.play()
   }
 
   const handleVideoEnded = () => {
@@ -596,6 +604,7 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
       embed ? "rounded-none shadow-none" : "rounded-xl shadow-lg"
     )}>
       <VideoPlayer
+        ref={mainPlayerRef}
         src={video.hlsUrl || video.videoUrl || ''}
         poster={video.thumbnailUrl || undefined}
         autoplay={playerOptions?.autoplay}
@@ -1050,11 +1059,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
                 onClick={() => {
                   setShowEndScreen(false)
                   consumedInsertsRef.current = new Set()
-                  const videoEl = document.querySelector('video')
-                  if (videoEl) {
-                    videoEl.currentTime = 0
-                    videoEl.play().catch(() => null)
-                  }
+                  mainPlayerRef.current?.seek(0)
+                  mainPlayerRef.current?.play()
                 }}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />

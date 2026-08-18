@@ -18,11 +18,12 @@ export function SeekButton({ time, className, children }: SeekButtonProps) {
     <button
       type="button"
       onClick={() => {
-        const videoEl = document.querySelector('video')
-        if (videoEl) {
-          videoEl.currentTime = time
-          videoEl.play().catch(() => null)
-        }
+        // Ana oynatıcı InteractivePlayer içinde (native <video> ya da YouTube/Vimeo
+        // embed). Doğrudan DOM'a erişmek yerine olay yayınla; oynatıcı dinleyip
+        // kaynağa uygun şekilde seek eder.
+        window.dispatchEvent(
+          new CustomEvent('mindstamp:seek', { detail: { time } })
+        )
       }}
       className={cn(
         'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left',
