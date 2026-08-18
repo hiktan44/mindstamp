@@ -15,8 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mindstamp Klonu - Interaktif Video Platformu",
-  description: "Videolarınıza etkileşimli öğeler ekleyerek dinamik deneyimler oluşturun",
+  metadataBase: new URL("https://interaktiff.com"),
+  title: "interaktiff — Videolarını Etkileşimli Hale Getir",
+  description:
+    "interaktiff ile videolarına butonlar, sorular, hotspot'lar ve yapay zeka sohbet ekle. İzleyiciyi tıklatan, ölçülebilir ve dönüşüm getiren interaktif video deneyimleri oluştur.",
+  keywords: [
+    "interaktif video",
+    "etkileşimli video",
+    "video pazarlama",
+    "video quiz",
+    "interaktiff",
+  ],
+  openGraph: {
+    title: "interaktiff — Videolarını Etkileşimli Hale Getir",
+    description:
+      "Butonlar, sorular, hotspot'lar ve yapay zeka ile videolarını etkileşimli deneyimlere dönüştür.",
+    url: "https://interaktiff.com",
+    siteName: "interaktiff",
+    locale: "tr_TR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

@@ -128,3 +128,45 @@
     @apply font-sans;
   }
 }
+/* --- interaktiff landing animations --- */
+@keyframes itf-float {
+  0%, 100% { transform: translateY(0) }
+  50% { transform: translateY(-10px) }
+}
+@keyframes itf-float-slow {
+  0%, 100% { transform: translateY(0) }
+  50% { transform: translateY(-18px) }
+}
+@keyframes itf-ring {
+  0% { transform: scale(0.8); opacity: 0.9 }
+  100% { transform: scale(2.2); opacity: 0 }
+}
+@keyframes itf-rise {
+  0% { transform: translateY(14px); opacity: 0 }
+  100% { transform: translateY(0); opacity: 1 }
+}
+@keyframes itf-cursor {
+  0%   { transform: translate(0, 0) }
+  35%  { transform: translate(120px, 44px) }
+  45%  { transform: translate(120px, 44px) scale(0.85) }
+  55%  { transform: translate(120px, 44px) }
+  100% { transform: translate(0, 0) }
+}
+@keyframes itf-marquee {
+  from { transform: translateX(0) }
+  to { transform: translateX(-50%) }
+}
+@keyframes itf-gradient {
+  0%, 100% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+}
+.itf-float { animation: itf-float 4s ease-in-out infinite }
+.itf-float-slow { animation: itf-float-slow 6s ease-in-out infinite }
+.itf-ring { animation: itf-ring 2.4s ease-out infinite }
+.itf-rise { animation: itf-rise 0.6s ease-out both }
+.itf-cursor { animation: itf-cursor 5s ease-in-out infinite }
+.itf-marquee { animation: itf-marquee 28s linear infinite }
+.itf-gradient-text {
+  background-size: 200% 200%;
+  animation: itf-gradient 6s ease infinite;
+}
