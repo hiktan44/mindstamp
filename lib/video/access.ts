@@ -13,7 +13,7 @@ export function getVideoPrivacy(video: VideoForAccess) {
 }
 
 export function getUnlockCookieName(videoId: string) {
-  return `mindstamp_video_unlock_${videoId}`
+  return `interaktiff_video_unlock_${videoId}`
 }
 
 export async function isVideoUnlocked(videoId: string) {

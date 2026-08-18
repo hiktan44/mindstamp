@@ -29,7 +29,7 @@ export async function validateAnalyticsAccess(
     return null
   }
 
-  const viewerId = req.cookies.get('mindstamp_viewer_id')?.value
+  const viewerId = req.cookies.get('interaktiff_viewer_id')?.value
   if (viewerId && analytics.viewerId && viewerId !== analytics.viewerId) {
     return null
   }

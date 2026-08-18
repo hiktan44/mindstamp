@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const session = await auth()
-  const viewerId = req.cookies.get('mindstamp_viewer_id')?.value || randomUUID()
+  const viewerId = req.cookies.get('interaktiff_viewer_id')?.value || randomUUID()
   const userAgent = req.headers.get('user-agent')
   const referrer = parsed.data.referrer || req.headers.get('referer')
   const device = detectDevice(userAgent)
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     viewerId,
   })
 
-  response.cookies.set('mindstamp_viewer_id', viewerId, {
+  response.cookies.set('interaktiff_viewer_id', viewerId, {
     httpOnly: true,
     sameSite: 'none',
     secure: process.env.NODE_ENV === 'production',

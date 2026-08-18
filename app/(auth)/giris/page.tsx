@@ -69,7 +69,7 @@ function LoginForm() {
             <Video className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-            Mindstamp Klonu
+            interaktiff
           </h1>
           <p className="text-sm text-muted-foreground">
             Videolarınızı etkileşimli hale getirin

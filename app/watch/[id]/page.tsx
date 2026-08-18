@@ -50,10 +50,10 @@ export async function generateMetadata({ params: paramsPromise }: { params: Prom
 
   return {
     title: video.title,
-    description: video.description || 'Mindstamp Klonu - İnteraktif Video',
+    description: video.description || 'interaktiff - İnteraktif Video',
     openGraph: {
       title: video.title,
-      description: video.description || 'Mindstamp Klonu - İnteraktif Video',
+      description: video.description || 'interaktiff - İnteraktif Video',
       images: [video.thumbnailUrl || ''],
     },
   }
@@ -107,7 +107,7 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="font-semibold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent">Mindstamp</span>
+            <span className="font-semibold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent">interaktiff</span>
           </div>
 
           <Button variant="outline" size="sm">
@@ -256,7 +256,7 @@ export default async function WatchPage({ params: paramsPromise }: { params: Pro
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="font-semibold">Mindstamp Klonu</span>
+              <span className="font-semibold">interaktiff</span>
             </div>
             <p className="text-sm text-muted-foreground">
               © 2024 Tüm hakları saklıdır.

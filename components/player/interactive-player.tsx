@@ -238,8 +238,8 @@ export function InteractivePlayer({ video, embed = false, playerOptions }: Inter
         mainPlayerRef.current?.play()
       }
     }
-    window.addEventListener('mindstamp:seek', handleSeek)
-    return () => window.removeEventListener('mindstamp:seek', handleSeek)
+    window.addEventListener('interaktiff:seek', handleSeek)
+    return () => window.removeEventListener('interaktiff:seek', handleSeek)
   }, [])
 
   // Track lead capture timing

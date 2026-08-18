@@ -22,7 +22,7 @@ export function SeekButton({ time, className, children }: SeekButtonProps) {
         // embed). Doğrudan DOM'a erişmek yerine olay yayınla; oynatıcı dinleyip
         // kaynağa uygun şekilde seek eder.
         window.dispatchEvent(
-          new CustomEvent('mindstamp:seek', { detail: { time } })
+          new CustomEvent('interaktiff:seek', { detail: { time } })
         )
       }}
       className={cn(

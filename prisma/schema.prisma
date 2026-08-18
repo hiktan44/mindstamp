@@ -1,4 +1,4 @@
-// Mindstamp Klonu - Database Schema
+// interaktiff - Database Schema
 // Prisma ORM + PostgreSQL
 
 generator client {
