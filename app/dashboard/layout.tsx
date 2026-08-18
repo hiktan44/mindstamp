@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -56,6 +57,25 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed] = useState(false)
+  const [user, setUser] = useState<{ name?: string | null; email?: string | null } | null>(null)
+
+  // Oturum bilgisini çek (SessionProvider olmadığı için doğrudan endpoint'ten).
+  useEffect(() => {
+    let active = true
+    fetch('/api/auth/session')
+      .then((r) => r.json())
+      .then((data) => {
+        if (active) setUser(data?.user ?? null)
+      })
+      .catch(() => null)
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı'
+  const displayEmail = user?.email || ''
+  const initial = (displayName.trim()[0] || 'K').toUpperCase()
 
   return (
     <SidebarProvider>
@@ -109,17 +129,17 @@ export default function DashboardLayout({
                     }
                   >
                       <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarImage src="" alt="User" />
+                        <AvatarImage src="" alt={displayName} />
                         <AvatarFallback className="rounded-lg">
-                          K
+                          {initial}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          Kullanıcı Adı
+                          {displayName}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
-                          user@example.com
+                          {displayEmail}
                         </span>
                       </div>
                   </DropdownMenuTrigger>
@@ -132,17 +152,17 @@ export default function DashboardLayout({
                     <DropdownMenuLabel className="p-0 font-normal">
                       <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                         <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarImage src="" alt="User" />
+                          <AvatarImage src="" alt={displayName} />
                           <AvatarFallback className="rounded-lg">
-                            K
+                            {initial}
                           </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
                           <span className="truncate font-semibold">
-                            Kullanıcı Adı
+                            {displayName}
                           </span>
                           <span className="truncate text-xs text-muted-foreground">
-                            user@example.com
+                            {displayEmail}
                           </span>
                         </div>
                       </div>
@@ -153,7 +173,7 @@ export default function DashboardLayout({
                       Ayarlar
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Çıkış Yap
                     </DropdownMenuItem>
