@@ -163,6 +163,7 @@ type Plan = {
   tagline: string
   monthly: { try: number; usd: number }
   annual: { try: number; usd: number }
+  limits: string[]
   features: string[]
   cta: string
   accent: string
@@ -175,11 +176,12 @@ const plans: Plan[] = [
     tagline: 'Denemek ve başlamak için',
     monthly: { try: 0, usd: 0 },
     annual: { try: 0, usd: 0 },
+    limits: ['3 interaktif video', '1 yönetici', '10 dk video süresi', '1.000 dk/ay yayın'],
     features: [
-      '3 interaktif video',
       'Buton, soru, hotspot',
       'YouTube / Vimeo içe aktarma',
       'Temel analitik',
+      'Sınırsız izleyici',
       'interaktiff filigranı',
     ],
     cta: 'Ücretsiz başla',
@@ -187,33 +189,50 @@ const plans: Plan[] = [
   },
   {
     name: 'Pro',
-    tagline: 'Büyüyen ekipler ve üreticiler',
-    monthly: { try: 499, usd: 19 },
-    annual: { try: 399, usd: 15 },
+    tagline: 'İçerik üreticileri ve küçük ekipler',
+    monthly: { try: 899, usd: 29 },
+    annual: { try: 719, usd: 23 },
+    limits: ['25 interaktif video', '2 yönetici', '60 dk video süresi', '15.000 dk/ay yayın'],
     features: [
-      'Sınırsız interaktif video',
       'Tüm etkileşimler + dallanma',
       'Genie AI asistan',
+      'Lead toplama & formlar',
+      'Altyazı, bölüm, bitiş ekranı',
       'Gelişmiş analitik + CSV',
-      'Lead toplama & form',
-      'Filigran yok, özel marka',
+      'Filigran yok',
     ],
     cta: '14 gün ücretsiz dene',
     accent: 'bg-[#FF6B35]',
     highlighted: true,
   },
   {
-    name: 'Kurumsal',
-    tagline: 'Ölçek, güvenlik ve destek',
-    monthly: { try: 1499, usd: 59 },
-    annual: { try: 1199, usd: 47 },
+    name: 'İşletme',
+    tagline: 'Büyüyen ekipler ve ajanslar',
+    monthly: { try: 2499, usd: 79 },
+    annual: { try: 1999, usd: 63 },
+    limits: ['100 interaktif video', '5 yönetici', 'Sınırsız video süresi', '60.000 dk/ay yayın'],
     features: [
       'Pro’daki her şey',
       'Takım & rol yönetimi',
-      'SSO ve gelişmiş güvenlik',
-      'Öncelikli destek + eğitim',
-      'API erişimi & webhooks',
-      'Özel entegrasyonlar',
+      'Müşteri ve klasör organizasyonu',
+      'Marka özelleştirme (renk, font, oynatıcı)',
+      'Öncelikli e-posta desteği',
+    ],
+    cta: '14 gün ücretsiz dene',
+    accent: 'bg-[#06D6A0]',
+  },
+  {
+    name: 'Kurumsal',
+    tagline: 'Ölçek, süreç ve özel destek',
+    monthly: { try: 5999, usd: 199 },
+    annual: { try: 4799, usd: 159 },
+    limits: ['Sınırsız video', '15 yönetici', 'Sınırsız video süresi', '250.000+ dk/ay yayın'],
+    features: [
+      'İşletme’deki her şey',
+      'Kurulum ve ekip eğitimi',
+      'Özel entegrasyon desteği',
+      'Özel sözleşme & faturalandırma',
+      'Adanmış destek yöneticisi',
     ],
     cta: 'Bizimle iletişime geç',
     accent: 'bg-[#118AB2]',
@@ -501,7 +520,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-12 grid items-start gap-6 lg:grid-cols-3">
+          <div className="mt-12 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-4">
             {plans.map((p) => {
               const price = annual ? p.annual : p.monthly
               const val = currency === 'try' ? price.try : price.usd
@@ -510,41 +529,52 @@ export default function Home() {
                   key={p.name}
                   className={`relative overflow-hidden rounded-3xl border-2 border-[#1a1a1a] bg-white ${
                     p.highlighted
-                      ? 'shadow-[9px_9px_0_0_#1a1a1a] lg:-translate-y-3'
+                      ? 'shadow-[8px_8px_0_0_#1a1a1a] lg:-translate-y-3'
                       : 'shadow-[5px_5px_0_0_#1a1a1a]'
                   }`}
                 >
                   <div className={`h-2.5 ${p.accent}`} />
                   {p.highlighted && (
-                    <span className="absolute right-4 top-6 rounded-full border-2 border-[#1a1a1a] bg-[#FFD166] px-3 py-1 text-xs font-extrabold">
+                    <span className="absolute right-3 top-5 rounded-full border-2 border-[#1a1a1a] bg-[#FFD166] px-2.5 py-0.5 text-[11px] font-extrabold">
                       En popüler
                     </span>
                   )}
 
-                  <div className="p-7">
-                    <h3 className="text-xl font-extrabold">{p.name}</h3>
-                    <p className="mt-1 text-sm text-[#6b6b6b]">{p.tagline}</p>
+                  <div className="p-6">
+                    <h3 className="text-lg font-extrabold">{p.name}</h3>
+                    <p className="mt-1 text-xs text-[#6b6b6b]">{p.tagline}</p>
 
-                    <div className="mt-5 flex items-end gap-1.5">
-                      <span className="text-5xl font-extrabold tracking-tight">{money(val)}</span>
-                      {val !== 0 && <span className="mb-1.5 text-sm text-[#6b6b6b]">/ ay</span>}
+                    <div className="mt-4 flex items-end gap-1">
+                      <span className="text-4xl font-extrabold tracking-tight">{money(val)}</span>
+                      {val !== 0 && <span className="mb-1 text-xs text-[#6b6b6b]">/ ay</span>}
                     </div>
-                    <p className="mt-1 h-4 text-xs font-medium text-[#FF6B35]">
+                    <p className="mt-1 h-4 text-[11px] font-medium text-[#FF6B35]">
                       {val !== 0 && annual ? 'yıllık faturalandırılır' : ''}
                     </p>
 
                     <Link
                       href="/kayit"
-                      className={`mt-6 block rounded-full border-2 border-[#1a1a1a] px-5 py-3 text-center text-sm font-bold shadow-[4px_4px_0_0_#1a1a1a] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                      className={`mt-5 block rounded-full border-2 border-[#1a1a1a] px-4 py-2.5 text-center text-sm font-bold shadow-[3px_3px_0_0_#1a1a1a] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
                         p.highlighted ? 'bg-[#FF6B35] text-white' : 'bg-white'
                       }`}
                     >
                       {p.cta}
                     </Link>
 
-                    <ul className="mt-6 space-y-3 text-sm">
+                    {/* limitler */}
+                    <ul className="mt-5 space-y-1.5 rounded-xl border-2 border-dashed border-[#1a1a1a]/20 bg-[#FFF8F0] p-3 text-[13px] font-semibold">
+                      {p.limits.map((l) => (
+                        <li key={l} className="flex items-center gap-2">
+                          <span className={`h-1.5 w-1.5 flex-none rounded-full ${p.accent}`} />
+                          {l}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* özellikler */}
+                    <ul className="mt-4 space-y-2.5 text-[13px]">
                       {p.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5">
+                        <li key={f} className="flex items-start gap-2">
                           <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full bg-[#06D6A0]">
                             <Check className="h-3 w-3 text-[#1a1a1a]" strokeWidth={3} />
                           </span>
@@ -557,6 +587,11 @@ export default function Home() {
               )
             })}
           </div>
+
+          <p className="mt-8 text-center text-xs text-[#6b6b6b]">
+            Fiyatlara KDV dahil değildir · Tüm planlarda sınırsız izleyici ve sınırsız etkileşim ·
+            İstediğin zaman iptal et
+          </p>
         </div>
       </section>
 
