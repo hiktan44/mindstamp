@@ -2,6 +2,7 @@
 
 import React, { forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react'
 import { VideoPlayer } from '@/components/player/video-player'
+import type { PlayerHandle } from '@/components/player/player-handle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -225,6 +226,8 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
 
   // Drag logic
   const containerRef = useRef<HTMLDivElement>(null)
+  // Ana oynatıcı kontrolü (native <video> ya da YouTube/Vimeo embed) tek handle üzerinden.
+  const playerRef = useRef<PlayerHandle>(null)
   const [dragInfo, setDragInfo] = useState<{ id: string, startX: number, startY: number, startPosX: number, startPosY: number } | null>(null)
   const [resizeInfo, setResizeInfo] = useState<{ id: string, corner: 'nw' | 'ne' | 'sw' | 'se', startX: number, startY: number, startW: number, startH: number } | null>(null)
   const [snapGuides, setSnapGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
@@ -524,10 +527,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
   }
 
   const handleSeekToInteraction = (interaction: Interaction) => {
-    const video = document.querySelector('video')
-    if (video) {
-      video.currentTime = interaction.startTime
-    }
+    playerRef.current?.seek(interaction.startTime)
     setCurrentTime(interaction.startTime)
     setSelectedInteraction(interaction)
   }
@@ -869,6 +869,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
 
         <div ref={containerRef} className="relative aspect-video bg-black rounded-lg overflow-hidden">
           <VideoPlayer
+            ref={playerRef}
             src={video?.hlsUrl || video?.videoUrl || ''}
             poster={video?.thumbnailUrl}
             onTimeUpdate={setCurrentTime}
@@ -969,8 +970,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             size="icon"
             variant="outline"
             onClick={() => {
-              const video = document.querySelector('video')
-              if (video) video.currentTime = Math.max(0, currentTime - 10)
+              playerRef.current?.seek(Math.max(0, currentTime - 10))
             }}
           >
             <SkipBack className="h-4 w-4" />
@@ -979,11 +979,8 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             size="icon"
             variant="outline"
             onClick={() => {
-              const video = document.querySelector('video')
-              if (video) {
-                if (isPlaying) video.pause()
-                else video.play()
-              }
+              if (isPlaying) playerRef.current?.pause()
+              else playerRef.current?.play()
             }}
           >
             {isPlaying ? (
@@ -996,8 +993,7 @@ export const VideoEditor = forwardRef<VideoEditorHandle, VideoEditorProps>(funct
             size="icon"
             variant="outline"
             onClick={() => {
-              const video = document.querySelector('video')
-              if (video) video.currentTime = currentTime + 10
+              playerRef.current?.seek(currentTime + 10)
             }}
           >
             <SkipForward className="h-4 w-4" />

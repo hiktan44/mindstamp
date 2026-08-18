@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import {
@@ -15,6 +22,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Hls from 'hls.js'
+import { resolveVideoSource } from '@/lib/video/providers'
+import { EmbedPlayer } from './embed-player'
+import type { PlayerHandle } from './player-handle'
 
 interface VideoPlayerProps {
   src: string
@@ -40,7 +50,8 @@ interface VideoPlayerProps {
 // render (which would re-run the caption effect and loop setState).
 const EMPTY_CAPTIONS: NonNullable<VideoPlayerProps['captions']> = []
 
-export function VideoPlayer({
+const NativeVideoPlayer = forwardRef<PlayerHandle, VideoPlayerProps>(
+  function NativeVideoPlayer({
   src,
   poster,
   className,
@@ -54,9 +65,23 @@ export function VideoPlayer({
   onPlay,
   onPause,
   onEnded,
-}: VideoPlayerProps) {
+}: VideoPlayerProps, ref) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useImperativeHandle(
+    ref,
+    (): PlayerHandle => ({
+      play: () => videoRef.current?.play().catch(() => null),
+      pause: () => videoRef.current?.pause(),
+      seek: (time: number) => {
+        if (videoRef.current) videoRef.current.currentTime = time
+      },
+      getCurrentTime: () => videoRef.current?.currentTime ?? 0,
+      getDuration: () => videoRef.current?.duration ?? 0,
+    }),
+    []
+  )
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -455,4 +480,32 @@ export function VideoPlayer({
       </div>}
     </div>
   )
-}
+})
+
+// Kaynağa göre native oynatıcı ya da YouTube/Vimeo embed oynatıcısını seçer.
+// Her iki durumda da aynı PlayerHandle ref'ini ve callback'leri sunar.
+export const VideoPlayer = forwardRef<PlayerHandle, VideoPlayerProps>(
+  function VideoPlayer(props, ref) {
+    const source = resolveVideoSource(props.src)
+
+    if (source.type === 'youtube' || source.type === 'vimeo') {
+      return (
+        <EmbedPlayer
+          ref={ref}
+          source={source}
+          className={props.className}
+          autoplay={props.autoplay}
+          muted={props.muted}
+          startTime={props.startTime}
+          onTimeUpdate={props.onTimeUpdate}
+          onDurationChange={props.onDurationChange}
+          onPlay={props.onPlay}
+          onPause={props.onPause}
+          onEnded={props.onEnded}
+        />
+      )
+    }
+
+    return <NativeVideoPlayer ref={ref} {...props} />
+  }
+)
