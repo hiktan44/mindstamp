@@ -1,4 +1,4 @@
-# Mindstamp Klonu - Interaktif Video Platformu
+# interaktiff - Interaktif Video Platformu
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
@@ -89,7 +89,7 @@ Videolarınıza etkileşimli öğeler (butonlar, sorular, hotspot'lar, metin, re
 ```bash
 # 1. Repo'yu klonlayın
 git clone <repo-url>
-cd mindstamp
+cd interaktiff
 
 # 2. Bağımlılıkları yükleyin
 npm install
@@ -102,7 +102,7 @@ cp .env.example .env.local
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/mindstamp?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/interaktiff?schema=public"
 
 # NextAuth.js
 NEXTAUTH_URL="http://localhost:3000"
@@ -117,7 +117,7 @@ GITHUB_SECRET="your-github-client-secret"
 # File Storage (S3/R2)
 S3_ACCESS_KEY_ID="your-access-key"
 S3_SECRET_ACCESS_KEY="your-secret-key"
-S3_BUCKET_NAME="mindstamp-videos"
+S3_BUCKET_NAME="interaktiff-videos"
 S3_REGION="auto"
 S3_ENDPOINT="https://..."
 
@@ -130,7 +130,7 @@ OPENAI_API_KEY="your-openai-key"
 
 # App
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="Mindstamp Klonu"
+NEXT_PUBLIC_APP_NAME="interaktiff"
 ```
 
 ```bash
@@ -147,7 +147,7 @@ Uygulama [http://localhost:3000](http://localhost:3000) adresinde çalışacakt�
 ## 📁 Proje Yapısı
 
 ```
-mindstamp/
+interaktiff/
 ├── app/
 │   ├── (auth)/                    # Auth routes
 │   │   ├── giris/                 # Login page
@@ -291,4 +291,4 @@ Sorular ve öneriler için: [GitHub Issues](https://github.com/your-repo/issues)
 
 ---
 
-**Not**: Bu Mindstamp klonu eğitim ve demonstrasyon amaçlıdır. Üretim kullanımı için ek güvenlik önlemleri alınmalıdır.
+**Not**: Bu interaktiff eğitim ve demonstrasyon amaçlıdır. Üretim kullanımı için ek güvenlik önlemleri alınmalıdır.

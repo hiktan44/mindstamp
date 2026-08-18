@@ -1,4 +1,4 @@
-# Mindstamp Klonu - Dockerfile for Coolay Self-Hosting
+# interaktiff - Dockerfile for Coolay Self-Hosting
 # Multi-stage build for optimal image size
 
 # ============================================

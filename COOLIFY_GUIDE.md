@@ -1,4 +1,4 @@
-# Mindstamp Klonu - Coolify Self-Hosting Guide
+# interaktiff - Coolify Self-Hosting Guide
 # ============================================
 
 ## 🚀 Coolify ile Deployment
@@ -19,10 +19,10 @@ Coolify, Docker konteynerlı uygulamaları self-host etmek için en kolay platfo
 ```bash
 # İlk commit
 git add .
-git commit -m "Initial commit: Mindstamp klonu"
+git commit -m "Initial commit: interaktiff"
 
 # Repository oluştur (GitHub'da)
-git remote add origin https://github.com/kullanici-adi/mindstamp.git
+git remote add origin https://github.com/kullanici-adi/interaktiff.git
 git branch -M main
 git push -u origin main
 ```
@@ -40,7 +40,7 @@ git push -u origin main
 
 ```env
 # Database (Coolify'in built-in PostgreSQL'unu kullanın)
-DATABASE_URL=postgresql://user:password@postgres:5432/mindstamp
+DATABASE_URL=postgresql://user:password@postgres:5432/interaktiff
 
 # NextAuth (rastgele string oluştur)
 NEXTAUTH_URL=https://your-domain.coolify.com
@@ -48,12 +48,12 @@ NEXTAUTH_SECRET=your-super-secret-key-min-32-chars
 
 # App
 NEXT_PUBLIC_APP_URL=https://your-domain.coolify.com
-NEXT_PUBLIC_APP_NAME=Mindstamp Klonu
+NEXT_PUBLIC_APP_NAME=interaktiff
 
 # Storage (MinIO veya S3)
 S3_ACCESS_KEY_ID=your-access-key
 S3_SECRET_ACCESS_KEY=your-secret-key
-S3_BUCKET_NAME=mindstamp-videos
+S3_BUCKET_NAME=interaktiff-videos
 S3_ENDPOINT=https://your-minio-domain.com
 
 # Mux (Opsiyonel)
@@ -65,7 +65,7 @@ MUX_WEBHOOK_SIGNING_SECRET=your-webhook-secret
 #### 4. Database Bağlantısı
 
 1. **Resources** → **+ New Resource** → **Database** (PostgreSQL)
-2. Database adı: `mindstamp`
+2. Database adı: `interaktiff`
 3. Resource Linking: App service'i database'e bağla
 
 #### 5. Deploy

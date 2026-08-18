@@ -87,7 +87,7 @@ export default function DashboardLayout({
                 <Video className="h-5 w-5 text-primary-foreground" />
               </div>
               {!collapsed && (
-                <span className="text-lg font-semibold">Mindstamp</span>
+                <span className="text-lg font-semibold">interaktiff</span>
               )}
             </div>
           </SidebarHeader>
