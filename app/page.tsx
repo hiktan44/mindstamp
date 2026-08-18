@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import {
-  Video,
   MousePointerClick,
   BarChart3,
   Sparkles,
@@ -19,8 +17,7 @@ import {
   Menu,
   X,
   Zap,
-  Shield,
-  Globe,
+  Plus,
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -30,87 +27,106 @@ import {
 const features = [
   {
     icon: MousePointerClick,
-    title: 'Tıklanabilir Butonlar',
-    desc: "Videonun herhangi bir anına çağrı-eylem butonları ekle; izleyiciyi ürüne, forma ya da bir sonraki bölüme yönlendir.",
+    title: 'Tıklanabilir butonlar',
+    desc: 'Videonun istediğin anına çağrı-eylem butonu koy; izleyiciyi ürüne, forma ya da bir sonraki bölüme gönder.',
+    bg: 'bg-[#FF6B35]',
+    text: 'text-white',
   },
   {
     icon: MessageSquare,
-    title: 'Sorular & Quizler',
-    desc: 'Video içinde çoktan seçmeli sorular sor, cevaba göre farklı yollara dallandır, öğrenmeyi ölç.',
+    title: 'Sorular & quizler',
+    desc: 'Video içinde soru sor, cevaba göre yolu değiştir, öğrenmeyi gerçekten ölç.',
+    bg: 'bg-[#FFD166]',
+    text: 'text-[#1a1a1a]',
   },
   {
     icon: Target,
-    title: 'Hotspot & Sıcak Noktalar',
-    desc: 'Görüntü üzerinde tıklanabilir alanlar tanımla; ürün detayları, ipuçları ve gizli içerikler aç.',
+    title: 'Hotspot alanları',
+    desc: 'Görüntü üzerinde tıklanabilir bölgeler tanımla; ürün detayı, ipucu ve gizli içerik aç.',
+    bg: 'bg-[#06D6A0]',
+    text: 'text-[#1a1a1a]',
   },
   {
     icon: GitBranch,
-    title: 'Dallanan Senaryolar',
-    desc: 'İzleyicinin seçimine göre videoyu farklı sahnelere yönlendir; kişiye özel akışlar kur.',
+    title: 'Dallanan senaryolar',
+    desc: 'Herkes aynı videoyu izlemesin. Seçime göre farklı sahnelere dallan, kişiye özel akış kur.',
+    bg: 'bg-[#EF476F]',
+    text: 'text-white',
   },
   {
     icon: Sparkles,
-    title: 'Genie AI Asistan',
-    desc: 'Videonun transkripti üzerinde eğitilmiş yapay zeka; izleyicinin sorularını videonun içinde yanıtlar.',
+    title: 'Genie AI asistan',
+    desc: 'Videonun transkripti üzerinde eğitilmiş yapay zekâ, izleyicinin sorusunu videonun içinde yanıtlar.',
+    bg: 'bg-[#118AB2]',
+    text: 'text-white',
   },
   {
     icon: BarChart3,
-    title: 'Detaylı Analitik',
-    desc: 'Görüntülenme, tıklama, cevap ve terk noktalarını saniye saniye izle; nelerin işe yaradığını gör.',
+    title: 'Saniye saniye analitik',
+    desc: 'Kim nerede tıkladı, nerede bıraktı, hangi cevabı verdi — hepsini gör.',
+    bg: 'bg-[#FFF1E6]',
+    text: 'text-[#1a1a1a]',
   },
   {
     icon: Upload,
-    title: 'Kolay İçe Aktarma',
-    desc: "MP4, MOV, WEBM yükle ya da YouTube / Vimeo bağlantısını yapıştır — saniyeler içinde başla.",
+    title: 'Kolay içe aktarma',
+    desc: 'MP4, MOV, WEBM yükle ya da YouTube / Vimeo bağlantısını yapıştır. Hepsi bu.',
+    bg: 'bg-[#E9F5DB]',
+    text: 'text-[#1a1a1a]',
   },
   {
     icon: Zap,
-    title: 'Lead Toplama',
-    desc: 'Videonun kritik anında e-posta / form iste; izleyiciyi kesintisiz akışta müşteriye dönüştür.',
+    title: 'Lead toplama',
+    desc: 'Kritik anda e-posta iste. İzleyiciyi akışı bozmadan müşteriye çevir.',
+    bg: 'bg-[#1a1a1a]',
+    text: 'text-white',
   },
 ]
 
 const steps = [
   {
-    n: '01',
+    n: '1',
     title: 'Videonu ekle',
-    desc: 'Dosya yükle ya da YouTube/Vimeo bağlantısını yapıştır. Dönüştürme ve oynatma bizde.',
+    desc: 'Dosya yükle ya da YouTube/Vimeo bağlantısını yapıştır.',
+    color: 'bg-[#FF6B35]',
   },
   {
-    n: '02',
-    title: 'Etkileşim ekle',
-    desc: 'Sürükle-bırak editörle buton, soru, hotspot ve AI’yı istediğin saniyeye yerleştir.',
+    n: '2',
+    title: 'Etkileşimi yerleştir',
+    desc: 'Sürükle-bırak editörle buton, soru ve hotspot’u istediğin saniyeye koy.',
+    color: 'bg-[#06D6A0]',
   },
   {
-    n: '03',
-    title: 'Paylaş & ölç',
-    desc: 'Bağlantıyla paylaş ya da sitene göm. Her tıklamayı, cevabı ve dönüşümü canlı izle.',
+    n: '3',
+    title: 'Paylaş ve ölç',
+    desc: 'Bağlantıyla paylaş ya da sitene göm; her tıklamayı canlı izle.',
+    color: 'bg-[#118AB2]',
   },
 ]
 
 const useCases = [
-  { icon: Globe, t: 'E-ticaret', d: 'Ürün videolarında “Sepete Ekle” butonu ve varyant seçimi.' },
-  { icon: Sparkles, t: 'Online Eğitim', d: 'Ders içi quizler, dallanan senaryolar ve tamamlama takibi.' },
-  { icon: BarChart3, t: 'Pazarlama', d: 'İnteraktif reklamlar, lead formları ve A/B ölçümü.' },
-  { icon: Shield, t: 'Kurumsal Eğitim', d: 'İç eğitimlerde sınav, sertifika ve katılım raporu.' },
+  { t: 'E-ticaret', d: 'Ürün videosunda “Sepete Ekle”, varyant seçimi, kampanya.', c: 'bg-[#FF6B35]' },
+  { t: 'Online eğitim', d: 'Ders içi quiz, dallanan anlatım, tamamlama takibi.', c: 'bg-[#FFD166]' },
+  { t: 'Pazarlama', d: 'İnteraktif reklam, lead formu, A/B ölçümü.', c: 'bg-[#EF476F]' },
+  { t: 'Kurumsal eğitim', d: 'İç eğitimde sınav, sertifika ve katılım raporu.', c: 'bg-[#06D6A0]' },
 ]
 
 const faqs = [
   {
-    q: 'interaktiff’i kullanmak için teknik bilgi gerekir mi?',
+    q: 'Teknik bilgi gerekiyor mu?',
     a: 'Hayır. Sürükle-bırak editörle kod yazmadan buton, soru ve hotspot ekleyebilirsin. Videonu yüklemen yeterli.',
   },
   {
     q: 'Kendi YouTube veya Vimeo videomu kullanabilir miyim?',
-    a: 'Evet. Dosya yüklemenin yanında YouTube ve Vimeo bağlantılarını doğrudan yapıştırıp etkileşim ekleyebilirsin.',
+    a: 'Evet. Dosya yüklemenin yanında YouTube ve Vimeo bağlantılarını doğrudan yapıştırıp üzerine etkileşim ekleyebilirsin.',
   },
   {
     q: 'Videoları siteme gömebilir miyim?',
-    a: 'Kesinlikle. Her interaktif video için paylaşım bağlantısı ve gömme (embed) kodu üretilir; kendi sitene saniyeler içinde eklersin.',
+    a: 'Kesinlikle. Her interaktif video için paylaşım bağlantısı ve gömme kodu üretilir; kendi sitene saniyeler içinde eklersin.',
   },
   {
     q: 'Ücretsiz planda ne kadar ileri gidebilirim?',
-    a: 'Ücretsiz planla platformun tüm temel etkileşimlerini deneyebilir, ilk videolarını yayınlayabilirsin. Kredi kartı istemiyoruz.',
+    a: 'Ücretsiz planla temel etkileşimlerin hepsini deneyip ilk videolarını yayınlayabilirsin. Kredi kartı istemiyoruz.',
   },
   {
     q: 'Analitik verilerini dışa aktarabilir miyim?',
@@ -121,32 +137,35 @@ const faqs = [
 const testimonials = [
   {
     quote:
-      'İnteraktif quizler sayesinde eğitim videolarımızda tamamlanma oranı %38 arttı. Kurulumu bir öğleden sonra sürdü.',
+      'Eğitim videolarımıza quiz koyduk, tamamlanma oranı %38 arttı. Kurulum bir öğleden sonra sürdü.',
     name: 'Elif Demir',
     role: 'Eğitim Müdürü, Akademi+',
+    c: 'bg-[#FFD166]',
   },
   {
     quote:
-      'Ürün videolarına “Sepete Ekle” butonu koyduk, videodan gelen satış üç katına çıktı. interaktiff olmadan düşünemiyorum.',
+      'Ürün videosuna “Sepete Ekle” butonu koyduk; videodan gelen satış üç katına çıktı.',
     name: 'Barış Yıldız',
     role: 'Kurucu, TicaretPlus',
+    c: 'bg-[#06D6A0]',
   },
   {
     quote:
-      'Genie AI, izleyicilerin sorularını videonun içinde yanıtlıyor. Destek taleplerimiz gözle görülür azaldı.',
+      'Genie AI izleyicinin sorusunu videonun içinde yanıtlıyor. Destek taleplerimiz gözle görülür azaldı.',
     name: 'Selin Kaya',
     role: 'Pazarlama Lideri, Bulut360',
+    c: 'bg-[#FF6B35]',
   },
 ]
 
-/* Fiyatlandırma — TRY / USD, aylık / yıllık */
 type Plan = {
   name: string
   tagline: string
-  priceMonthly: { try: number; usd: number }
-  priceAnnual: { try: number; usd: number } // aylık eşdeğer (yıllıkta indirimli)
+  monthly: { try: number; usd: number }
+  annual: { try: number; usd: number }
   features: string[]
   cta: string
+  accent: string
   highlighted?: boolean
 }
 
@@ -154,8 +173,8 @@ const plans: Plan[] = [
   {
     name: 'Ücretsiz',
     tagline: 'Denemek ve başlamak için',
-    priceMonthly: { try: 0, usd: 0 },
-    priceAnnual: { try: 0, usd: 0 },
+    monthly: { try: 0, usd: 0 },
+    annual: { try: 0, usd: 0 },
     features: [
       '3 interaktif video',
       'Buton, soru, hotspot',
@@ -163,29 +182,31 @@ const plans: Plan[] = [
       'Temel analitik',
       'interaktiff filigranı',
     ],
-    cta: 'Ücretsiz Başla',
+    cta: 'Ücretsiz başla',
+    accent: 'bg-[#FFD166]',
   },
   {
     name: 'Pro',
-    tagline: 'Büyüyen ekipler ve içerik üreticileri',
-    priceMonthly: { try: 499, usd: 19 },
-    priceAnnual: { try: 399, usd: 15 },
+    tagline: 'Büyüyen ekipler ve üreticiler',
+    monthly: { try: 499, usd: 19 },
+    annual: { try: 399, usd: 15 },
     features: [
       'Sınırsız interaktif video',
-      'Tüm etkileşim türleri + dallanma',
+      'Tüm etkileşimler + dallanma',
       'Genie AI asistan',
-      'Gelişmiş analitik + CSV dışa aktarma',
+      'Gelişmiş analitik + CSV',
       'Lead toplama & form',
       'Filigran yok, özel marka',
     ],
-    cta: '14 Gün Ücretsiz Dene',
+    cta: '14 gün ücretsiz dene',
+    accent: 'bg-[#FF6B35]',
     highlighted: true,
   },
   {
     name: 'Kurumsal',
     tagline: 'Ölçek, güvenlik ve destek',
-    priceMonthly: { try: 1499, usd: 59 },
-    priceAnnual: { try: 1199, usd: 47 },
+    monthly: { try: 1499, usd: 59 },
+    annual: { try: 1199, usd: 47 },
     features: [
       'Pro’daki her şey',
       'Takım & rol yönetimi',
@@ -194,12 +215,11 @@ const plans: Plan[] = [
       'API erişimi & webhooks',
       'Özel entegrasyonlar',
     ],
-    cta: 'Bizimle İletişime Geç',
+    cta: 'Bizimle iletişime geç',
+    accent: 'bg-[#118AB2]',
   },
 ]
 
-/* ------------------------------------------------------------------ */
-/* Sayfa                                                               */
 /* ------------------------------------------------------------------ */
 
 export default function Home() {
@@ -208,197 +228,198 @@ export default function Home() {
   const [annual, setAnnual] = useState(true)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
-  const money = (v: number) =>
-    v === 0 ? '0' : currency === 'try' ? `₺${v}` : `$${v}`
+  const money = (v: number) => (v === 0 ? '0' : currency === 'try' ? `₺${v}` : `$${v}`)
 
   return (
-    <div className="min-h-screen bg-[#0b0713] text-white antialiased selection:bg-fuchsia-500/40">
-      {/* arka plan ışıltıları */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-violet-600/25 blur-[140px]" />
-        <div className="absolute top-1/3 -right-40 h-[32rem] w-[32rem] rounded-full bg-fuchsia-600/20 blur-[130px]" />
-        <div className="absolute bottom-0 -left-40 h-[30rem] w-[30rem] rounded-full bg-indigo-600/20 blur-[130px]" />
-      </div>
+    <div className="min-h-screen bg-white text-[#1a1a1a] antialiased selection:bg-[#FFD166]">
+      {/* ---------------- Nav ---------------- */}
+      <header className="sticky top-0 z-50 border-b-2 border-[#1a1a1a] bg-white">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo />
+            <span className="text-xl font-extrabold tracking-tight">interaktiff</span>
+          </Link>
 
-      <div className="relative">
-        {/* ---------------- Nav ---------------- */}
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0b0713]/70 backdrop-blur-xl">
-          <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Logo />
-              <span className="text-lg font-semibold tracking-tight">
-                interaktiff
-              </span>
+          <div className="hidden items-center gap-7 text-sm font-medium md:flex">
+            <a href="#ozellikler" className="hover:text-[#FF6B35]">Özellikler</a>
+            <a href="#nasil" className="hover:text-[#FF6B35]">Nasıl çalışır</a>
+            <a href="#fiyat" className="hover:text-[#FF6B35]">Fiyatlar</a>
+            <a href="#sss" className="hover:text-[#FF6B35]">SSS</a>
+          </div>
+
+          <div className="hidden items-center gap-3 md:flex">
+            <Link href="/giris" className="text-sm font-medium hover:text-[#FF6B35]">
+              Giriş yap
             </Link>
-
-            <div className="hidden items-center gap-8 text-sm text-white/70 md:flex">
-              <a href="#ozellikler" className="transition hover:text-white">Özellikler</a>
-              <a href="#nasil" className="transition hover:text-white">Nasıl Çalışır</a>
-              <a href="#fiyat" className="transition hover:text-white">Fiyatlandırma</a>
-              <a href="#sss" className="transition hover:text-white">SSS</a>
-            </div>
-
-            <div className="hidden items-center gap-3 md:flex">
-              <Link
-                href="/giris"
-                className="text-sm text-white/80 transition hover:text-white"
-              >
-                Giriş Yap
-              </Link>
-              <Link href="/kayit">
-                <Button className="rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 text-white shadow-lg shadow-fuchsia-600/30 hover:opacity-95">
-                  Ücretsiz Başla
-                </Button>
-              </Link>
-            </div>
-
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="rounded-lg p-2 text-white/80 md:hidden"
-              aria-label="Menü"
+            <Link
+              href="/kayit"
+              className="rounded-full border-2 border-[#1a1a1a] bg-[#FF6B35] px-5 py-2 text-sm font-bold text-white shadow-[3px_3px_0_0_#1a1a1a] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </nav>
-
-          {menuOpen && (
-            <div className="border-t border-white/10 px-5 py-4 md:hidden">
-              <div className="flex flex-col gap-4 text-sm text-white/80">
-                <a href="#ozellikler" onClick={() => setMenuOpen(false)}>Özellikler</a>
-                <a href="#nasil" onClick={() => setMenuOpen(false)}>Nasıl Çalışır</a>
-                <a href="#fiyat" onClick={() => setMenuOpen(false)}>Fiyatlandırma</a>
-                <a href="#sss" onClick={() => setMenuOpen(false)}>SSS</a>
-                <Link href="/giris">Giriş Yap</Link>
-                <Link href="/kayit">
-                  <Button className="w-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600">
-                    Ücretsiz Başla
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* ---------------- Hero ---------------- */}
-        <section className="mx-auto max-w-7xl px-5 pt-16 pb-10 md:pt-24">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
-                <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" />
-                Yapay zekâ destekli interaktif video platformu
-              </span>
-
-              <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
-                Videolarını{' '}
-                <span className="itf-gradient-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400 bg-clip-text text-transparent">
-                  tıklanabilir
-                </span>{' '}
-                deneyimlere dönüştür
-              </h1>
-
-              <p className="mt-6 max-w-xl text-lg text-white/70">
-                interaktiff ile videolarına buton, soru, hotspot ve yapay zekâ ekle.
-                İzleyiciyi izleyen değil <span className="text-white">katılan</span> hâle
-                getir; her tıklamayı ölç, dönüşümü artır.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/kayit">
-                  <Button
-                    size="lg"
-                    className="w-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 text-base text-white shadow-xl shadow-fuchsia-600/30 hover:opacity-95 sm:w-auto"
-                  >
-                    Ücretsiz Başla <ArrowRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-                <a href="#nasil">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full rounded-full border-white/20 bg-white/5 px-7 text-base text-white hover:bg-white/10 sm:w-auto"
-                  >
-                    <Play className="mr-1 h-4 w-4" /> Nasıl çalışır?
-                  </Button>
-                </a>
-              </div>
-
-              <p className="mt-4 text-xs text-white/50">
-                Kredi kartı gerekmez · Saniyeler içinde kurulum
-              </p>
-            </div>
-
-            {/* interaktif mockup */}
-            <HeroMockup />
+              Ücretsiz başla
+            </Link>
           </div>
-        </section>
 
-        {/* ---------------- Logo şeridi ---------------- */}
-        <section className="mx-auto max-w-7xl px-5 py-10">
-          <p className="text-center text-xs uppercase tracking-widest text-white/40">
-            Eğitim, e-ticaret ve pazarlama ekiplerinin tercihi
-          </p>
-          <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-            <div className="itf-marquee flex w-max gap-12 opacity-70">
-              {[...brandRow, ...brandRow].map((b, i) => (
-                <span key={i} className="whitespace-nowrap text-lg font-semibold text-white/60">
-                  {b}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="rounded-lg border-2 border-[#1a1a1a] p-1.5 md:hidden"
+            aria-label="Menü"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </nav>
 
-        {/* ---------------- Özellikler ---------------- */}
-        <section id="ozellikler" className="mx-auto max-w-7xl px-5 py-20">
-          <SectionHeading
-            eyebrow="Özellikler"
-            title="İzleyiciyi harekete geçiren her şey"
-            sub="Tek bir editörde; kod yok, karmaşa yok. Videonun içine gömülü, ölçülebilir etkileşimler."
-          />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:-translate-y-1 hover:border-fuchsia-500/40 hover:bg-white/[0.06]"
+        {menuOpen && (
+          <div className="border-t-2 border-[#1a1a1a] bg-[#FFF8F0] px-5 py-4 md:hidden">
+            <div className="flex flex-col gap-4 text-sm font-medium">
+              <a href="#ozellikler" onClick={() => setMenuOpen(false)}>Özellikler</a>
+              <a href="#nasil" onClick={() => setMenuOpen(false)}>Nasıl çalışır</a>
+              <a href="#fiyat" onClick={() => setMenuOpen(false)}>Fiyatlar</a>
+              <a href="#sss" onClick={() => setMenuOpen(false)}>SSS</a>
+              <Link href="/giris">Giriş yap</Link>
+              <Link
+                href="/kayit"
+                className="rounded-full border-2 border-[#1a1a1a] bg-[#FF6B35] px-5 py-2 text-center font-bold text-white"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600/30 to-fuchsia-600/30 ring-1 ring-white/10">
-                  <f.icon className="h-5 w-5 text-fuchsia-300" />
-                </div>
-                <h3 className="mt-4 font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm text-white/60">{f.desc}</p>
-              </div>
-            ))}
+                Ücretsiz başla
+              </Link>
+            </div>
           </div>
-        </section>
+        )}
+      </header>
 
-        {/* ---------------- Nasıl çalışır + video ---------------- */}
-        <section id="nasil" className="mx-auto max-w-7xl px-5 py-20">
-          <SectionHeading
-            eyebrow="Nasıl Çalışır"
-            title="Üç adımda interaktif video"
-            sub="Yüklemekten yayınlamaya, dakikalar içinde."
+      {/* ---------------- Hero ---------------- */}
+      <section className="relative overflow-hidden border-b-2 border-[#1a1a1a] bg-[#FFF8F0]">
+        {/* noktalı doku */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.18]"
+          style={{
+            backgroundImage: 'radial-gradient(#1a1a1a 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 md:py-24 lg:grid-cols-[1.05fr_1fr]">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border-2 border-[#1a1a1a] bg-[#FFD166] px-3 py-1 text-xs font-bold">
+              <span className="h-2 w-2 rounded-full bg-[#EF476F]" />
+              Yapay zekâ destekli interaktif video platformu
+            </span>
+
+            <h1 className="mt-6 text-[2.6rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+              İzlenen video değil,{' '}
+              <span className="relative inline-block">
+                <span className="relative z-10">tıklanan</span>
+                <Squiggle />
+              </span>{' '}
+              video yap.
+            </h1>
+
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-[#4a4a4a]">
+              interaktiff ile videolarına buton, soru, hotspot ve yapay zekâ ekle.
+              İzleyici sadece izlemesin — <strong className="text-[#1a1a1a]">katılsın</strong>,
+              tıklasın, cevap versin. Sen de her hareketi ölç.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/kayit"
+                className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[#1a1a1a] bg-[#FF6B35] px-7 py-3.5 text-base font-bold text-white shadow-[5px_5px_0_0_#1a1a1a] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              >
+                Ücretsiz başla <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href="#nasil"
+                className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[#1a1a1a] bg-white px-7 py-3.5 text-base font-bold shadow-[5px_5px_0_0_#1a1a1a] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              >
+                <Play className="h-4 w-4" /> Nasıl çalışır?
+              </a>
+            </div>
+
+            <p className="mt-4 text-sm text-[#6b6b6b]">
+              Kredi kartı gerekmez · 2 dakikada ilk videon
+            </p>
+          </div>
+
+          <HeroMockup />
+        </div>
+      </section>
+
+      {/* ---------------- İstatistik şeridi ---------------- */}
+      <section className="border-b-2 border-[#1a1a1a] bg-[#1a1a1a] text-white">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x-2 divide-white/15 md:grid-cols-4">
+          {[
+            { k: '%38', v: 'daha yüksek tamamlanma', c: 'text-[#FFD166]' },
+            { k: '3.2x', v: 'daha fazla dönüşüm', c: 'text-[#06D6A0]' },
+            { k: '2 dk', v: 'ilk videoyu yayınlama', c: 'text-[#FF6B35]' },
+            { k: '%100', v: 'kod yazmadan', c: 'text-[#EF476F]' },
+          ].map((s) => (
+            <div key={s.v} className="px-5 py-7 text-center">
+              <div className={`text-3xl font-extrabold ${s.c}`}>{s.k}</div>
+              <div className="mt-1 text-xs text-white/70">{s.v}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------------- Özellikler ---------------- */}
+      <section id="ozellikler" className="mx-auto max-w-6xl px-5 py-20">
+        <Heading
+          kicker="Özellikler"
+          kickerBg="bg-[#06D6A0]"
+          title="İzleyiciyi harekete geçiren her şey"
+          sub="Tek editörde, kod yok. Videonun içine gömülü, ölçülebilir etkileşimler."
+        />
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f, i) => (
+            <div
+              key={f.title}
+              className={`rounded-2xl border-2 border-[#1a1a1a] p-6 shadow-[5px_5px_0_0_#1a1a1a] transition hover:-translate-y-1 hover:shadow-[7px_9px_0_0_#1a1a1a] ${f.bg} ${f.text}`}
+              style={{ transform: `rotate(${(i % 2 === 0 ? -0.6 : 0.6).toFixed(2)}deg)` }}
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-current/25 bg-white/25">
+                <f.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 text-lg font-extrabold leading-snug">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed opacity-85">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------------- Nasıl çalışır + video ---------------- */}
+      <section id="nasil" className="border-y-2 border-[#1a1a1a] bg-[#E9F5DB]">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <Heading
+            kicker="Nasıl çalışır"
+            kickerBg="bg-[#FFD166]"
+            title="Üç adım, hepsi bu"
+            sub="Yüklemekten yayınlamaya dakikalar içinde."
           />
 
           <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:items-center">
-            <ol className="space-y-6">
+            <ol className="space-y-5">
               {steps.map((s) => (
-                <li key={s.n} className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                  <span className="bg-gradient-to-br from-violet-400 to-fuchsia-400 bg-clip-text text-2xl font-bold text-transparent">
+                <li
+                  key={s.n}
+                  className="flex gap-4 rounded-2xl border-2 border-[#1a1a1a] bg-white p-5 shadow-[4px_4px_0_0_#1a1a1a]"
+                >
+                  <span
+                    className={`flex h-11 w-11 flex-none items-center justify-center rounded-full border-2 border-[#1a1a1a] text-lg font-extrabold text-white ${s.color}`}
+                  >
                     {s.n}
                   </span>
                   <div>
-                    <h3 className="font-semibold">{s.title}</h3>
-                    <p className="mt-1 text-sm text-white/60">{s.desc}</p>
+                    <h3 className="font-extrabold">{s.title}</h3>
+                    <p className="mt-1 text-sm text-[#4a4a4a]">{s.desc}</p>
                   </div>
                 </li>
               ))}
             </ol>
 
-            {/* Demo video */}
-            <div className="relative rounded-3xl border border-white/10 bg-black/40 p-2 shadow-2xl shadow-fuchsia-900/20">
-              <div className="overflow-hidden rounded-2xl">
+            <div className="rounded-3xl border-2 border-[#1a1a1a] bg-white p-3 shadow-[7px_7px_0_0_#1a1a1a]">
+              <div className="overflow-hidden rounded-2xl border-2 border-[#1a1a1a]">
                 <video
-                  className="aspect-video w-full"
+                  className="aspect-video w-full bg-[#1a1a1a]"
                   controls
                   playsInline
                   preload="metadata"
@@ -407,66 +428,73 @@ export default function Home() {
                   <source src="/interaktiff-demo.mp4" type="video/mp4" />
                 </video>
               </div>
-              <p className="px-3 py-3 text-center text-xs text-white/50">
-                interaktiff ile üretilmiş kısa tanıtım
+              <p className="px-2 py-3 text-center text-xs font-medium text-[#6b6b6b]">
+                interaktiff ile hazırlanmış kısa tanıtım
               </p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ---------------- Kullanım alanları ---------------- */}
-        <section className="mx-auto max-w-7xl px-5 py-20">
-          <SectionHeading
-            eyebrow="Her sektör için"
-            title="Bir video, sonsuz olasılık"
-            sub="Eğitimden e-ticarete, izleyiciyi katılımcıya dönüştür."
-          />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {useCases.map((u) => (
-              <div key={u.t} className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-transparent p-6">
-                <u.icon className="h-6 w-6 text-fuchsia-300" />
-                <h3 className="mt-4 font-semibold">{u.t}</h3>
-                <p className="mt-2 text-sm text-white/60">{u.d}</p>
+      {/* ---------------- Kullanım alanları ---------------- */}
+      <section className="mx-auto max-w-6xl px-5 py-20">
+        <Heading
+          kicker="Kimler kullanıyor"
+          kickerBg="bg-[#EF476F]"
+          title="Bir video, sonsuz kullanım"
+        />
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {useCases.map((u) => (
+            <div
+              key={u.t}
+              className="overflow-hidden rounded-2xl border-2 border-[#1a1a1a] bg-white shadow-[5px_5px_0_0_#1a1a1a]"
+            >
+              <div className={`h-2 ${u.c}`} />
+              <div className="p-6">
+                <h3 className="font-extrabold">{u.t}</h3>
+                <p className="mt-2 text-sm text-[#4a4a4a]">{u.d}</p>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {/* ---------------- Fiyatlandırma ---------------- */}
-        <section id="fiyat" className="mx-auto max-w-7xl px-5 py-20">
-          <SectionHeading
-            eyebrow="Fiyatlandırma"
+      {/* ---------------- Fiyatlandırma ---------------- */}
+      <section id="fiyat" className="border-y-2 border-[#1a1a1a] bg-[#FFF8F0]">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <Heading
+            kicker="Fiyatlar"
+            kickerBg="bg-[#118AB2]"
             title="Sana uygun bir plan var"
             sub="İstediğin zaman yükselt ya da iptal et. Gizli ücret yok."
           />
 
-          {/* toggler'lar */}
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-sm">
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="inline-flex items-center rounded-full border-2 border-[#1a1a1a] bg-white p-1 text-sm font-bold">
               <button
                 onClick={() => setAnnual(false)}
-                className={`rounded-full px-4 py-1.5 transition ${!annual ? 'bg-white text-[#0b0713]' : 'text-white/70'}`}
+                className={`rounded-full px-4 py-1.5 transition ${!annual ? 'bg-[#1a1a1a] text-white' : ''}`}
               >
                 Aylık
               </button>
               <button
                 onClick={() => setAnnual(true)}
-                className={`rounded-full px-4 py-1.5 transition ${annual ? 'bg-white text-[#0b0713]' : 'text-white/70'}`}
+                className={`rounded-full px-4 py-1.5 transition ${annual ? 'bg-[#1a1a1a] text-white' : ''}`}
               >
-                Yıllık <span className="text-fuchsia-500">−20%</span>
+                Yıllık <span className="text-[#FF6B35]">−%20</span>
               </button>
             </div>
 
-            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-sm">
+            <div className="inline-flex items-center rounded-full border-2 border-[#1a1a1a] bg-white p-1 text-sm font-bold">
               <button
                 onClick={() => setCurrency('try')}
-                className={`rounded-full px-4 py-1.5 transition ${currency === 'try' ? 'bg-white text-[#0b0713]' : 'text-white/70'}`}
+                className={`rounded-full px-4 py-1.5 transition ${currency === 'try' ? 'bg-[#1a1a1a] text-white' : ''}`}
               >
                 ₺ TRY
               </button>
               <button
                 onClick={() => setCurrency('usd')}
-                className={`rounded-full px-4 py-1.5 transition ${currency === 'usd' ? 'bg-white text-[#0b0713]' : 'text-white/70'}`}
+                className={`rounded-full px-4 py-1.5 transition ${currency === 'usd' ? 'bg-[#1a1a1a] text-white' : ''}`}
               >
                 $ USD
               </button>
@@ -475,253 +503,297 @@ export default function Home() {
 
           <div className="mt-12 grid items-start gap-6 lg:grid-cols-3">
             {plans.map((p) => {
-              const price = annual ? p.priceAnnual : p.priceMonthly
+              const price = annual ? p.annual : p.monthly
               const val = currency === 'try' ? price.try : price.usd
               return (
                 <div
                   key={p.name}
-                  className={`relative rounded-3xl border p-7 ${
+                  className={`relative overflow-hidden rounded-3xl border-2 border-[#1a1a1a] bg-white ${
                     p.highlighted
-                      ? 'border-fuchsia-500/50 bg-gradient-to-b from-fuchsia-600/15 to-violet-600/5 shadow-2xl shadow-fuchsia-900/30'
-                      : 'border-white/10 bg-white/[0.03]'
+                      ? 'shadow-[9px_9px_0_0_#1a1a1a] lg:-translate-y-3'
+                      : 'shadow-[5px_5px_0_0_#1a1a1a]'
                   }`}
                 >
+                  <div className={`h-2.5 ${p.accent}`} />
                   {p.highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-1 text-xs font-semibold">
+                    <span className="absolute right-4 top-6 rounded-full border-2 border-[#1a1a1a] bg-[#FFD166] px-3 py-1 text-xs font-extrabold">
                       En popüler
                     </span>
                   )}
-                  <h3 className="text-lg font-semibold">{p.name}</h3>
-                  <p className="mt-1 text-sm text-white/55">{p.tagline}</p>
 
-                  <div className="mt-5 flex items-end gap-1">
-                    <span className="text-4xl font-bold">{money(val)}</span>
-                    {val !== 0 && (
-                      <span className="mb-1 text-sm text-white/50">/ ay</span>
-                    )}
-                  </div>
-                  {val !== 0 && annual && (
-                    <p className="mt-1 text-xs text-fuchsia-300">Yıllık faturalandırılır</p>
-                  )}
+                  <div className="p-7">
+                    <h3 className="text-xl font-extrabold">{p.name}</h3>
+                    <p className="mt-1 text-sm text-[#6b6b6b]">{p.tagline}</p>
 
-                  <Link href={p.name === 'Kurumsal' ? '/kayit' : '/kayit'}>
-                    <Button
-                      className={`mt-6 w-full rounded-full ${
-                        p.highlighted
-                          ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-95'
-                          : 'bg-white/10 text-white hover:bg-white/15'
+                    <div className="mt-5 flex items-end gap-1.5">
+                      <span className="text-5xl font-extrabold tracking-tight">{money(val)}</span>
+                      {val !== 0 && <span className="mb-1.5 text-sm text-[#6b6b6b]">/ ay</span>}
+                    </div>
+                    <p className="mt-1 h-4 text-xs font-medium text-[#FF6B35]">
+                      {val !== 0 && annual ? 'yıllık faturalandırılır' : ''}
+                    </p>
+
+                    <Link
+                      href="/kayit"
+                      className={`mt-6 block rounded-full border-2 border-[#1a1a1a] px-5 py-3 text-center text-sm font-bold shadow-[4px_4px_0_0_#1a1a1a] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
+                        p.highlighted ? 'bg-[#FF6B35] text-white' : 'bg-white'
                       }`}
                     >
                       {p.cta}
-                    </Button>
-                  </Link>
+                    </Link>
 
-                  <ul className="mt-6 space-y-3 text-sm">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-white/75">
-                        <Check className="mt-0.5 h-4 w-4 flex-none text-fuchsia-400" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="mt-6 space-y-3 text-sm">
+                      {p.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full bg-[#06D6A0]">
+                            <Check className="h-3 w-3 text-[#1a1a1a]" strokeWidth={3} />
+                          </span>
+                          <span className="text-[#3a3a3a]">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )
             })}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ---------------- Testimonials ---------------- */}
-        <section className="mx-auto max-w-7xl px-5 py-20">
-          <SectionHeading
-            eyebrow="Kullanıcılar ne diyor"
-            title="Sonuçlar kendini gösteriyor"
-          />
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <figure key={t.name} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <div className="flex gap-0.5 text-fuchsia-400">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-current" />
-                  ))}
+      {/* ---------------- Testimonials ---------------- */}
+      <section className="mx-auto max-w-6xl px-5 py-20">
+        <Heading kicker="Kullanıcılar" kickerBg="bg-[#FFD166]" title="Sonuçlar kendini gösteriyor" />
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {testimonials.map((t, i) => (
+            <figure
+              key={t.name}
+              className="rounded-2xl border-2 border-[#1a1a1a] bg-white p-6 shadow-[5px_5px_0_0_#1a1a1a]"
+              style={{ transform: `rotate(${i === 1 ? 0.8 : -0.5}deg)` }}
+            >
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, k) => (
+                  <Star key={k} className="h-4 w-4 fill-[#FFD166] text-[#1a1a1a]" />
+                ))}
+              </div>
+              <blockquote className="mt-4 text-sm leading-relaxed text-[#3a3a3a]">
+                “{t.quote}”
+              </blockquote>
+              <figcaption className="mt-5 flex items-center gap-3">
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#1a1a1a] font-extrabold ${t.c}`}
+                >
+                  {t.name.charAt(0)}
+                </span>
+                <div>
+                  <div className="text-sm font-bold">{t.name}</div>
+                  <div className="text-xs text-[#6b6b6b]">{t.role}</div>
                 </div>
-                <blockquote className="mt-4 text-sm text-white/80">“{t.quote}”</blockquote>
-                <figcaption className="mt-5 flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-semibold">
-                    {t.name.charAt(0)}
-                  </span>
-                  <div>
-                    <div className="text-sm font-medium">{t.name}</div>
-                    <div className="text-xs text-white/50">{t.role}</div>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
 
-        {/* ---------------- SSS ---------------- */}
-        <section id="sss" className="mx-auto max-w-3xl px-5 py-20">
-          <SectionHeading eyebrow="SSS" title="Merak edilenler" />
-          <div className="mt-10 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/[0.03]">
+      {/* ---------------- SSS ---------------- */}
+      <section id="sss" className="border-t-2 border-[#1a1a1a] bg-[#FFF1E6]">
+        <div className="mx-auto max-w-3xl px-5 py-20">
+          <Heading kicker="SSS" kickerBg="bg-[#06D6A0]" title="Merak edilenler" />
+          <div className="mt-10 space-y-3">
             {faqs.map((f, i) => (
-              <div key={i}>
+              <div
+                key={i}
+                className="overflow-hidden rounded-2xl border-2 border-[#1a1a1a] bg-white shadow-[4px_4px_0_0_#1a1a1a]"
+              >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-bold"
                 >
-                  <span className="font-medium">{f.q}</span>
-                  <span className={`transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>
-                    <X className="h-4 w-4 rotate-45 text-fuchsia-400" />
-                  </span>
+                  {f.q}
+                  <Plus
+                    className={`h-5 w-5 flex-none transition-transform ${openFaq === i ? 'rotate-45' : ''}`}
+                  />
                 </button>
                 {openFaq === i && (
-                  <p className="px-6 pb-5 text-sm text-white/65">{f.a}</p>
+                  <p className="border-t-2 border-dashed border-[#1a1a1a]/20 px-5 py-4 text-sm leading-relaxed text-[#4a4a4a]">
+                    {f.a}
+                  </p>
                 )}
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ---------------- CTA ---------------- */}
-        <section className="mx-auto max-w-7xl px-5 py-16">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-violet-600/25 via-fuchsia-600/20 to-indigo-600/25 p-10 text-center md:p-16">
-            <div className="pointer-events-none absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-fuchsia-500/30 blur-3xl" />
-            <h2 className="relative text-3xl font-bold md:text-4xl">
-              İlk interaktif videonu bugün yayınla
-            </h2>
-            <p className="relative mx-auto mt-4 max-w-xl text-white/70">
-              Ücretsiz başla, kredi kartı gerekmez. Dakikalar içinde izleyicilerini
-              katılımcıya dönüştür.
-            </p>
-            <div className="relative mt-8 flex justify-center">
-              <Link href="/kayit">
-                <Button
-                  size="lg"
-                  className="rounded-full bg-white px-8 text-base font-semibold text-[#0b0713] hover:bg-white/90"
-                >
-                  Ücretsiz Başla <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+      {/* ---------------- CTA ---------------- */}
+      <section className="border-y-2 border-[#1a1a1a] bg-[#FF6B35]">
+        <div className="mx-auto max-w-4xl px-5 py-16 text-center text-white md:py-20">
+          <h2 className="text-3xl font-extrabold leading-tight md:text-5xl">
+            İlk interaktif videonu bugün yayınla
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-white/90">
+            Ücretsiz başla, kredi kartı gerekmez. İzleyicilerini dakikalar içinde
+            katılımcıya dönüştür.
+          </p>
+          <Link
+            href="/kayit"
+            className="mt-8 inline-flex items-center gap-2 rounded-full border-2 border-[#1a1a1a] bg-white px-8 py-4 text-base font-extrabold text-[#1a1a1a] shadow-[5px_5px_0_0_#1a1a1a] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+          >
+            Ücretsiz başla <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
 
-        {/* ---------------- Footer ---------------- */}
-        <footer className="border-t border-white/10">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-5 py-10 md:flex-row">
-            <div className="flex items-center gap-2">
-              <Logo />
-              <span className="font-semibold">interaktiff</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-6 text-sm text-white/60">
-              <a href="#ozellikler" className="hover:text-white">Özellikler</a>
-              <a href="#fiyat" className="hover:text-white">Fiyatlandırma</a>
-              <Link href="/giris" className="hover:text-white">Giriş Yap</Link>
-              <Link href="/kvkk" className="hover:text-white">KVKK</Link>
-              <Link href="/gizlilik" className="hover:text-white">Gizlilik</Link>
-            </div>
-            <p className="text-xs text-white/40">
-              © {new Date().getFullYear()} interaktiff
-            </p>
+      {/* ---------------- Footer ---------------- */}
+      <footer className="bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-5 py-10 md:flex-row">
+          <div className="flex items-center gap-2">
+            <Logo />
+            <span className="font-extrabold">interaktiff</span>
           </div>
-        </footer>
-      </div>
+          <div className="flex flex-wrap items-center justify-center gap-5 text-sm font-medium">
+            <a href="#ozellikler" className="hover:text-[#FF6B35]">Özellikler</a>
+            <a href="#fiyat" className="hover:text-[#FF6B35]">Fiyatlar</a>
+            <Link href="/giris" className="hover:text-[#FF6B35]">Giriş yap</Link>
+            <Link href="/kvkk" className="hover:text-[#FF6B35]">KVKK</Link>
+            <Link href="/gizlilik" className="hover:text-[#FF6B35]">Gizlilik</Link>
+          </div>
+          <p className="text-xs text-[#6b6b6b]">© {new Date().getFullYear()} interaktiff</p>
+        </div>
+      </footer>
     </div>
   )
 }
 
-const brandRow = ['Akademi+', 'TicaretPlus', 'Bulut360', 'EduLab', 'MarkaVideo', 'SatışPro', 'Kursify']
-
 /* ------------------------------------------------------------------ */
-/* Küçük bileşenler                                                    */
+/* Parçalar                                                            */
 /* ------------------------------------------------------------------ */
 
 function Logo() {
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-fuchsia-600/40">
-      <Video className="h-4 w-4 text-white" />
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#FF6B35] shadow-[2px_2px_0_0_#1a1a1a]">
+      <Play className="h-4 w-4 fill-white text-white" />
     </span>
   )
 }
 
-function SectionHeading({
-  eyebrow,
+function Squiggle() {
+  return (
+    <svg
+      className="absolute -bottom-2 left-0 h-3 w-full"
+      viewBox="0 0 200 12"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2 8 C 40 2, 60 11, 100 6 S 165 2, 198 7"
+        fill="none"
+        stroke="#FFD166"
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function Heading({
+  kicker,
+  kickerBg,
   title,
   sub,
 }: {
-  eyebrow: string
+  kicker: string
+  kickerBg: string
   title: string
   sub?: string
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <span className="text-xs font-semibold uppercase tracking-widest text-fuchsia-400">
-        {eyebrow}
+      <span
+        className={`inline-block rounded-full border-2 border-[#1a1a1a] px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${kickerBg}`}
+      >
+        {kicker}
       </span>
-      <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">{title}</h2>
-      {sub && <p className="mt-4 text-white/60">{sub}</p>}
+      <h2 className="mt-4 text-3xl font-extrabold tracking-tight md:text-4xl">{title}</h2>
+      {sub && <p className="mt-4 text-[#4a4a4a]">{sub}</p>}
     </div>
   )
 }
 
-/* Hero'daki canlı interaktif video mockup'ı */
+/* Hero'daki canlı, açık temalı ürün mockup'ı */
 function HeroMockup() {
   return (
     <div className="relative">
-      <div className="itf-float-slow relative rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-3 shadow-2xl shadow-fuchsia-900/30 backdrop-blur">
-        {/* video alanı */}
-        <div className="relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-[#1a0f2e] to-fuchsia-900">
-          {/* sahte sahne parıltıları */}
-          <div className="absolute inset-0 opacity-60 [background:radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.5),transparent_45%),radial-gradient(circle_at_75%_60%,rgba(217,70,239,0.45),transparent_45%)]" />
+      {/* tarayıcı çerçevesi */}
+      <div className="itf-float-slow rounded-3xl border-2 border-[#1a1a1a] bg-white p-3 shadow-[9px_9px_0_0_#1a1a1a]">
+        <div className="mb-2 flex items-center gap-1.5 px-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#EF476F]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#FFD166]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#06D6A0]" />
+        </div>
 
-          {/* orta oynat butonu */}
+        {/* video alanı */}
+        <div className="relative aspect-video overflow-hidden rounded-2xl border-2 border-[#1a1a1a] bg-[#1a1a1a]">
+          {/* sahne */}
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,#118AB2_0%,#06D6A0_55%,#FFD166_100%)] opacity-90" />
+
+          {/* orta oynat */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white/15 backdrop-blur">
-              <span className="itf-ring absolute inset-0 rounded-full border border-white/40" />
-              <Play className="h-6 w-6 fill-white text-white" />
+            <span className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#1a1a1a] bg-white shadow-[3px_3px_0_0_#1a1a1a]">
+              <span className="itf-ring absolute inset-0 rounded-full border-2 border-white" />
+              <Play className="ml-0.5 h-6 w-6 fill-[#1a1a1a] text-[#1a1a1a]" />
             </span>
           </div>
 
           {/* quiz kartı */}
-          <div className="itf-rise absolute left-4 top-4 w-48 rounded-xl border border-white/15 bg-black/50 p-3 backdrop-blur" style={{ animationDelay: '0.3s' }}>
-            <p className="text-[11px] font-medium text-white/90">Hangisini tercih edersin?</p>
+          <div
+            className="itf-rise absolute left-3 top-3 w-44 rounded-xl border-2 border-[#1a1a1a] bg-white p-2.5 shadow-[3px_3px_0_0_#1a1a1a]"
+            style={{ animationDelay: '0.25s' }}
+          >
+            <p className="text-[11px] font-bold">Hangisini seçersin?</p>
             <div className="mt-2 space-y-1.5">
-              <div className="rounded-md bg-gradient-to-r from-violet-500 to-fuchsia-500 px-2 py-1 text-[11px] font-medium">A · Pro Plan</div>
-              <div className="rounded-md bg-white/10 px-2 py-1 text-[11px] text-white/80">B · Ücretsiz</div>
+              <div className="rounded-md border-2 border-[#1a1a1a] bg-[#FF6B35] px-2 py-1 text-[11px] font-bold text-white">
+                A · Pro plan
+              </div>
+              <div className="rounded-md border-2 border-[#1a1a1a] bg-[#FFF1E6] px-2 py-1 text-[11px] font-semibold">
+                B · Ücretsiz
+              </div>
             </div>
           </div>
 
-          {/* AI sohbet balonu */}
-          <div className="itf-rise absolute bottom-4 right-4 flex w-44 items-start gap-2 rounded-xl border border-white/15 bg-black/50 p-3 backdrop-blur" style={{ animationDelay: '0.8s' }}>
-            <Sparkles className="mt-0.5 h-4 w-4 flex-none text-fuchsia-300" />
-            <p className="text-[11px] text-white/85">Bu videoda anlatılanları özetler misin?</p>
+          {/* AI balonu */}
+          <div
+            className="itf-rise absolute bottom-10 right-3 flex w-40 items-start gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#FFD166] p-2.5 shadow-[3px_3px_0_0_#1a1a1a]"
+            style={{ animationDelay: '0.7s' }}
+          >
+            <Sparkles className="mt-0.5 h-4 w-4 flex-none" />
+            <p className="text-[11px] font-semibold leading-snug">Bunu bir özetler misin?</p>
           </div>
 
-          {/* CTA buton + tıklayan cursor */}
-          <div className="absolute bottom-4 left-4">
-            <div className="itf-float rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3 py-1.5 text-[11px] font-semibold shadow-lg shadow-fuchsia-600/40">
-              Sepete Ekle
+          {/* CTA + cursor */}
+          <div className="absolute bottom-9 left-3">
+            <div className="itf-float rounded-lg border-2 border-[#1a1a1a] bg-[#EF476F] px-3 py-1.5 text-[11px] font-extrabold text-white shadow-[3px_3px_0_0_#1a1a1a]">
+              Sepete ekle
             </div>
           </div>
-          <div className="itf-cursor pointer-events-none absolute bottom-6 left-6">
-            <MousePointerClick className="h-5 w-5 text-white drop-shadow" />
+          <div className="itf-cursor pointer-events-none absolute bottom-11 left-6">
+            <MousePointerClick className="h-5 w-5 text-white drop-shadow-[2px_2px_0_#1a1a1a]" />
           </div>
 
-          {/* ilerleme çubuğu */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-            <div className="h-full w-2/3 bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+          {/* kontrol çubuğu */}
+          <div className="absolute bottom-0 left-0 right-0 border-t-2 border-[#1a1a1a] bg-white px-3 py-2">
+            <div className="h-1.5 w-full rounded-full bg-[#1a1a1a]/10">
+              <div className="h-full w-2/3 rounded-full bg-[#FF6B35]" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* yüzen istatistik rozetleri */}
-      <div className="itf-float absolute -left-4 top-10 hidden rounded-xl border border-white/10 bg-[#140b22]/90 px-3 py-2 text-xs shadow-xl backdrop-blur sm:block">
-        <div className="font-semibold text-fuchsia-300">+38%</div>
-        <div className="text-white/60">tamamlanma</div>
+      {/* yüzen rozetler */}
+      <div className="itf-float absolute -left-3 top-16 hidden rounded-xl border-2 border-[#1a1a1a] bg-[#06D6A0] px-3 py-2 text-xs font-extrabold shadow-[3px_3px_0_0_#1a1a1a] sm:block">
+        +38% tamamlanma
       </div>
-      <div className="itf-float-slow absolute -right-3 bottom-8 hidden rounded-xl border border-white/10 bg-[#140b22]/90 px-3 py-2 text-xs shadow-xl backdrop-blur sm:block">
-        <div className="font-semibold text-violet-300">3.2x</div>
-        <div className="text-white/60">dönüşüm</div>
+      <div className="itf-float-slow absolute -right-2 bottom-14 hidden rounded-xl border-2 border-[#1a1a1a] bg-white px-3 py-2 text-xs font-extrabold shadow-[3px_3px_0_0_#1a1a1a] sm:block">
+        3.2x dönüşüm
       </div>
     </div>
   )
