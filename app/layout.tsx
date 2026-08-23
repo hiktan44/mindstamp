@@ -26,6 +26,8 @@ export const metadata: Metadata = {
     "video quiz",
     "interaktiff",
   ],
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   openGraph: {
     title: "interaktiff — Videolarını Etkileşimli Hale Getir",
     description:
@@ -34,6 +36,11 @@ export const metadata: Metadata = {
     siteName: "interaktiff",
     locale: "tr_TR",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "interaktiff — Videolarını Etkileşimli Hale Getir",
+    description: "Videolarını tıklanabilir, ölçülebilir ve dönüşüm getiren deneyimlere dönüştür.",
   },
 };
 
@@ -47,6 +54,22 @@ export default function RootLayout({
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "interaktiff",
+              applicationCategory: "MultimediaApplication",
+              operatingSystem: "Web",
+              url: "https://interaktiff.com",
+              description: "Videolara buton, soru, hotspot ve yapay zeka sohbeti ekleyerek etkileşimli deneyimler oluşturun.",
+            }),
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <TooltipProvider>
           {children}
