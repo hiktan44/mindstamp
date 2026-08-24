@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { Video, Mail, Lock, AlertCircle } from 'lucide-react'
+import { useT } from '@/lib/i18n'
 
 import { Suspense } from 'react'
 
@@ -18,6 +19,7 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const { t } = useT()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -37,14 +39,14 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        setError('Geçersiz e-posta veya şifre')
+        setError(t('auth.error_login_failed_msg'))
         return
       }
 
-      toast.success('Giriş başarılı!')
+      toast.success(t('auth.success_register_login'))
       router.push(callbackUrl)
     } catch (error) {
-      setError('Bir hata oluştu')
+      setError(t('auth.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -55,7 +57,7 @@ function LoginForm() {
     try {
       await signIn(provider, { callbackUrl })
     } catch (error) {
-      toast.error('Giriş başarısız')
+      toast.error(t('auth.error_login_failed'))
       setLoading(false)
     }
   }
@@ -72,16 +74,16 @@ function LoginForm() {
             interaktiff
           </h1>
           <p className="text-sm text-muted-foreground">
-            Videolarınızı etkileşimli hale getirin
+            {t('auth.tagline')}
           </p>
         </div>
 
         {/* Login Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Giriş Yap</CardTitle>
+            <CardTitle>{t('auth.login_title')}</CardTitle>
             <CardDescription>
-              Hesabınıza giriş yapmak için bilgilerinizi girin
+              {t('auth.login_desc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -94,13 +96,13 @@ function LoginForm() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">E-posta</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="ornek@email.com"
+                    placeholder={t('auth.email_placeholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -111,12 +113,12 @@ function LoginForm() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Şifre</Label>
+                  <Label htmlFor="password">{t('auth.password')}</Label>
                   <Link
                     href="/sifre-sifirla"
                     className="text-xs text-muted-foreground hover:underline"
                   >
-                    Şifremi Unuttum
+                    {t('auth.forgot_password')}
                   </Link>
                 </div>
                 <div className="relative">
@@ -134,7 +136,7 @@ function LoginForm() {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+                {loading ? t('auth.logging_in') : t('auth.login_submit')}
               </Button>
             </form>
 
@@ -145,7 +147,7 @@ function LoginForm() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Veya şununla devam edin
+                    {t('auth.or_login_with')}
                   </span>
                 </div>
               </div>
@@ -175,7 +177,7 @@ function LoginForm() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Google
+                  {t('auth.google')}
                 </Button>
                 <Button
                   type="button"
@@ -186,16 +188,16 @@ function LoginForm() {
                   <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                   </svg>
-                  GitHub
+                  {t('auth.github')}
                 </Button>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-4">
             <div className="text-sm text-center text-muted-foreground">
-              Hesabınız yok mu?{' '}
+              {t('auth.no_account')}{' '}
               <Link href="/kayit" className="text-primary hover:underline">
-                Kayıt olun
+                {t('auth.register_link')}
               </Link>
             </div>
           </CardFooter>

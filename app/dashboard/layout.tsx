@@ -38,16 +38,7 @@ import {
   LogOut,
   Menu,
 } from 'lucide-react'
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'text-indigo-500' },
-  { name: 'Videolar', href: '/dashboard/videos', icon: Video, color: 'text-sky-500' },
-  { name: 'Klasörler', href: '/dashboard/folders', icon: FolderOpen, color: 'text-amber-500' },
-  { name: 'Müşteriler', href: '/dashboard/leads', icon: Users, color: 'text-emerald-500' },
-  { name: 'Analitik', href: '/dashboard/analytics', icon: BarChart3, color: 'text-rose-500' },
-  { name: 'Genie AI', href: '/dashboard/genie', icon: Sparkles, color: 'text-fuchsia-500' },
-  { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500' },
-]
+import { useT } from '@/lib/i18n'
 
 export default function DashboardLayout({
   children,
@@ -58,6 +49,17 @@ export default function DashboardLayout({
   const router = useRouter()
   const [collapsed] = useState(false)
   const [user, setUser] = useState<{ name?: string | null; email?: string | null } | null>(null)
+  const { t } = useT()
+
+  const navigation = [
+    { name: t('dashboard.nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, color: 'text-indigo-500' },
+    { name: t('dashboard.nav.videos'), href: '/dashboard/videos', icon: Video, color: 'text-sky-500' },
+    { name: t('dashboard.nav.folders'), href: '/dashboard/folders', icon: FolderOpen, color: 'text-amber-500' },
+    { name: t('dashboard.nav.leads'), href: '/dashboard/leads', icon: Users, color: 'text-emerald-500' },
+    { name: t('dashboard.nav.analytics'), href: '/dashboard/analytics', icon: BarChart3, color: 'text-rose-500' },
+    { name: t('dashboard.nav.genie'), href: '/dashboard/genie', icon: Sparkles, color: 'text-fuchsia-500' },
+    { name: t('dashboard.nav.settings'), href: '/dashboard/settings', icon: Settings, color: 'text-slate-500' },
+  ]
 
   // Oturum bilgisini çek (SessionProvider olmadığı için doğrudan endpoint'ten).
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function DashboardLayout({
     }
   }, [])
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'Kullanıcı'
+  const displayName = user?.name || user?.email?.split('@')[0] || t('dashboard.nav.user')
   const displayEmail = user?.email || ''
   const initial = (displayName.trim()[0] || 'K').toUpperCase()
 
@@ -170,12 +172,12 @@ export default function DashboardLayout({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                       <Settings className="mr-2 h-4 w-4" />
-                      Ayarlar
+                      {t('dashboard.nav.settings_action')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      Çıkış Yap
+                      {t('dashboard.nav.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

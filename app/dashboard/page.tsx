@@ -1,55 +1,58 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Video, Plus, BarChart3, Users, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n'
 
-const quickStats = [
+const getQuickStats = (t: (key: string) => string) => [
   {
-    title: 'Toplam Video',
+    title: t('dashboard.total_videos'),
     value: '0',
-    description: 'Video kütüphaneniz',
+    description: t('dashboard.video_library'),
     icon: Video,
     color: 'text-indigo-600',
     bg: 'bg-indigo-100',
   },
   {
-    title: 'Toplam Görüntülenme',
+    title: t('dashboard.total_views'),
     value: '0',
-    description: 'Son 30 gün',
+    description: t('dashboard.last_30_days'),
     icon: BarChart3,
     color: 'text-sky-600',
     bg: 'bg-sky-100',
   },
   {
-    title: 'Benzersiz İzleyici',
+    title: t('dashboard.unique_viewers'),
     value: '0',
-    description: 'Son 30 gün',
+    description: t('dashboard.last_30_days'),
     icon: Users,
     color: 'text-emerald-600',
     bg: 'bg-emerald-100',
   },
   {
-    title: 'Etkileşim Oranı',
+    title: t('dashboard.avg_engagement'),
     value: '%0',
-    description: 'Ortalama',
+    description: t('dashboard.avg'),
     icon: TrendingUp,
     color: 'text-amber-600',
     bg: 'bg-amber-100',
   },
 ]
 
-const quickActions = [
+const getQuickActions = (t: (key: string) => string) => [
   {
-    title: 'Yeni Video Oluştur',
-    description: 'Video yükleyin veya URL ekleyin',
+    title: t('dashboard.new_video'),
+    description: t('dashboard.new_video_desc'),
     icon: Plus,
     href: '/dashboard/videos/new',
     variant: 'default' as const,
   },
   {
-    title: 'Videoları Görüntüle',
-    description: 'Tüm videolarınızı yönetin',
+    title: t('dashboard.view_videos'),
+    description: t('dashboard.view_videos_desc'),
     icon: Video,
     href: '/dashboard/videos',
     variant: 'outline' as const,
@@ -57,21 +60,23 @@ const quickActions = [
 ]
 
 export default function DashboardPage() {
+  const { t } = useT()
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-          Dashboard
+          {t('dashboard.nav.dashboard')}
         </h2>
         <p className="text-muted-foreground">
-          Hoş geldiniz! İşte video platformunuzun özeti.
+          {t('dashboard.welcome')}
         </p>
       </div>
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {quickStats.map((stat) => (
+        {getQuickStats(t).map((stat) => (
           <Card key={stat.title} className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -93,7 +98,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid gap-6 md:grid-cols-2">
-        {quickActions.map((action) => (
+        {getQuickActions(t).map((action) => (
           <Card key={action.title} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -112,7 +117,7 @@ export default function DashboardPage() {
                   variant={action.variant}
                   className="w-full"
                 >
-                  {action.title === 'Yeni Video Oluştur' ? 'Başla' : 'Görüntüle'}
+                  {action.title === t('dashboard.new_video') ? t('dashboard.start') : t('dashboard.view')}
                 </Button>
               </Link>
             </CardContent>
@@ -123,9 +128,9 @@ export default function DashboardPage() {
       {/* Getting Started */}
       <Card>
         <CardHeader>
-          <CardTitle>Başlangıç Rehberi</CardTitle>
+          <CardTitle>{t('dashboard.guide_title')}</CardTitle>
           <CardDescription>
-            Platformu kullanmaya başlamak için bu adımları takip edin
+            {t('dashboard.guide_desc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -135,8 +140,8 @@ export default function DashboardPage() {
                 1
               </span>
               <span>
-                <strong className="text-foreground">Video Yükleyin:</strong>{' '}
-                MP4, MOV veya WEBM formatında video yükleyin veya YouTube/Vimeo URL'i ekleyin
+                <strong className="text-foreground">{t('dashboard.guide_step1_title')}</strong>{' '}
+                {t('dashboard.guide_step1_desc')}
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -144,8 +149,8 @@ export default function DashboardPage() {
                 2
               </span>
               <span>
-                <strong className="text-foreground">Etkileşim Ekleyin:</strong>{' '}
-                Butonlar, sorular, metinler ve daha fazlasını video üzerine ekleyin
+                <strong className="text-foreground">{t('dashboard.guide_step2_title')}</strong>{' '}
+                {t('dashboard.guide_step2_desc')}
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -153,8 +158,8 @@ export default function DashboardPage() {
                 3
               </span>
               <span>
-                <strong className="text-foreground">Tasarlayın:</strong>{' '}
-                Renkleri, fontları ve stilleri markanıza göre özelleştirin
+                <strong className="text-foreground">{t('dashboard.guide_step3_title')}</strong>{' '}
+                {t('dashboard.guide_step3_desc')}
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -162,8 +167,8 @@ export default function DashboardPage() {
                 4
               </span>
               <span>
-                <strong className="text-foreground">Yayınlayın:</strong>{' '}
-                Videoyu paylaşın, gömün ve analizleri izleyin
+                <strong className="text-foreground">{t('dashboard.guide_step4_title')}</strong>{' '}
+                {t('dashboard.guide_step4_desc')}
               </span>
             </li>
           </ol>
