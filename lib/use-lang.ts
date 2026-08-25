@@ -131,42 +131,42 @@ export function useLang() {
 
     // No preference saved, detect from IP
     detectCountry().then((country) => {
-      const detectedLang = country === 'TR' ? 'tr' : 'en'
-      
-      // Also check navigator.language as additional hint
-      const browserLang = navigator.language.toLowerCase()
-      const browserPref = browserLang.startsWith('tr') ? 'tr' : browserLang.startsWith('en') ? 'en' : null
-      
-      // IP detection takes priority over browser, but both influence
-      const finalLang = detectedLang || browserPref || 'tr'
-      
-      setLangState(finalLang)
-      localStorage.setItem(COOKIE_NAME, finalLang)
-      setLangCookie(finalLang)
+      const storedNow = localStorage.getItem(COOKIE_NAME) as Lang | null
+      if (storedNow === 'tr' || storedNow === 'en') {
+        setLangState(storedNow)
+        setIsHydrated(true)
+        return
+      }
+      const detectedLang: Lang = country === 'TR' ? 'tr' : country ? 'en' : 'tr'
+      setLangState(detectedLang)
       setIsHydrated(true)
     }).catch(() => {
-      // Fallback to browser language or default to 'tr'
       const browserLang = navigator.language.toLowerCase()
-      const fallbackLang = browserLang.startsWith('tr') ? 'tr' : browserLang.startsWith('en') ? 'en' : 'tr'
-      
+      const fallbackLang: Lang = browserLang.startsWith('tr') ? 'tr' : 'tr'
       setLangState(fallbackLang)
-      localStorage.setItem(COOKIE_NAME, fallbackLang)
-      setLangCookie(fallbackLang)
       setIsHydrated(true)
     })
   }, [])
 
-  /**
-   * Set language and persist it
-   */
+  useEffect(() => {
+    const handler = () => {
+      const saved = localStorage.getItem(COOKIE_NAME) as Lang | null
+      if (saved === 'tr' || saved === 'en') setLangState(saved)
+    }
+    window.addEventListener(LANG_CHANGE_EVENT, handler)
+    window.addEventListener('storage', handler)
+    return () => {
+      window.removeEventListener(LANG_CHANGE_EVENT, handler)
+      window.removeEventListener('storage', handler)
+    }
+  }, [])
+
   const setLang = (newLang: Lang) => {
     setLangState(newLang)
     localStorage.setItem(COOKIE_NAME, newLang)
     setLangCookie(newLang)
-    
-    // Dispatch event for other components
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(LANG_CHANGE_EVENT, { detail: { lang: newLang } }))
+      window.dispatchEvent(new Event(LANG_CHANGE_EVENT))
     }
   }
 
