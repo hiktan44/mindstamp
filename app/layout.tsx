@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://interaktiff.com"),
+  metadataBase: new URL("https://mindstamp.seymata.com"),
   title: "interaktiff — Videolarını Etkileşimli Hale Getir",
   description:
     "interaktiff ile videolarına butonlar, sorular, hotspot'lar ve yapay zeka sohbet ekle. İzleyiciyi tıklatan, ölçülebilir ve dönüşüm getiren interaktif video deneyimleri oluştur.",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: "interaktiff — Videolarını Etkileşimli Hale Getir",
     description:
       "Butonlar, sorular, hotspot'lar ve yapay zeka ile videolarını etkileşimli deneyimlere dönüştür.",
-    url: "https://interaktiff.com",
+    url: "https://mindstamp.seymata.com",
     siteName: "interaktiff",
     locale: "tr_TR",
     type: "website",
@@ -65,8 +65,14 @@ export default function RootLayout({
               name: "interaktiff",
               applicationCategory: "MultimediaApplication",
               operatingSystem: "Web",
-              url: "https://interaktiff.com",
+              url: "https://mindstamp.seymata.com",
               description: "Videolara buton, soru, hotspot ve yapay zeka sohbeti ekleyerek etkileşimli deneyimler oluşturun.",
+              publisher: {
+                "@type": "Organization",
+                name: "STRATEJİ DANIŞMANLIK HİZMETLERİ SAN. VE TİC. A.Ş.",
+                taxID: "7810520457",
+                email: "info@stratejidanismanlik.com.tr",
+              },
             }),
           }}
         />
@@ -78,7 +84,11 @@ export default function RootLayout({
           </TooltipProvider>
           <Toaster />
         </LangProvider>
+      <LegalFooter />
       </body>
     </html>
   );
 }
+
+
+function LegalFooter() { return <footer className="border-t border-slate-200 bg-white px-5 py-5 text-center text-sm text-slate-600"><div className="flex flex-wrap justify-center gap-4"><a href="/privacy">Gizlilik ve KVKK</a><a href="/terms">Kullanım Koşulları</a><a href="/cookies">Çerez Politikası</a><a href="/contact">İletişim</a></div><p className="mt-3">STRATEJİ DANIŞMANLIK HİZMETLERİ SAN. VE TİC. A.Ş. · <a href="mailto:info@stratejidanismanlik.com.tr">info@stratejidanismanlik.com.tr</a></p></footer>; }

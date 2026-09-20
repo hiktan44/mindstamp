@@ -1,0 +1,9 @@
+# interaktiff
+
+> Videolara etkileşim, soru, yönlendirme ve ölçüm özellikleri ekleyen interaktif video platformu.
+
+- Resmî site: https://mindstamp.seymata.com/
+- Gizlilik ve KVKK: https://mindstamp.seymata.com/privacy
+- Kullanım koşulları: https://mindstamp.seymata.com/terms
+- Çerez politikası: https://mindstamp.seymata.com/cookies
+- İletişim: https://mindstamp.seymata.com/contact
