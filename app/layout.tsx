@@ -16,6 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'İnteraktiff', statusBarStyle: 'default' },
   metadataBase: new URL("https://mindstamp.seymata.com"),
   title: "interaktiff — Videolarını Etkileşimli Hale Getir",
   description:
@@ -85,6 +87,7 @@ export default function RootLayout({
           <Toaster />
         </LangProvider>
       <LegalFooter />
+      <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){window.addEventListener('load', function(){navigator.serviceWorker.register('/sw.js').catch(function(){});})}"}} />
       </body>
     </html>
   );
@@ -92,3 +95,5 @@ export default function RootLayout({
 
 
 function LegalFooter() { return <footer className="border-t border-slate-200 bg-white px-5 py-5 text-center text-sm text-slate-600"><div className="flex flex-wrap justify-center gap-4"><a href="/privacy">Gizlilik ve KVKK</a><a href="/terms">Kullanım Koşulları</a><a href="/cookies">Çerez Politikası</a><a href="/contact">İletişim</a></div><p className="mt-3">STRATEJİ DANIŞMANLIK HİZMETLERİ SAN. VE TİC. A.Ş. · <a href="mailto:info@stratejidanismanlik.com.tr">info@stratejidanismanlik.com.tr</a></p></footer>; }
+
+export const viewport = { themeColor: '#0f4c81' };
