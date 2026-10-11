@@ -64,17 +64,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: '/giris',
   },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
-        token.id = user.id
-        token.role = (user as any).role
-      }
+    async jwt({ token, user }) {
+      // Eski sürümde istemci token.sub dahil bütün kimlik alanlarını değiştirebiliyordu.
+      // Yalnız yeni, sunucuda doğrulanmış girişler sürüm 2 oturumu başlatabilir.
+      if (!user && token.authVersion !== 2) return null
+      const id = user?.id ?? token.sub
+      if (typeof id !== 'string' || !id) return null
+      const account = await prisma.user.findUnique({
+        where: { id },
+        select: { id: true, role: true, name: true, email: true, image: true },
+      })
+      if (!account) return null
 
-      // Session update
-      if (trigger === 'update' && session) {
-        token = { ...token, ...session }
-      }
-
+      // Güncelleme gövdesi kimlik/rol kaynağı değildir; profil de veritabanından okunur.
+      token.id = account.id
+      token.sub = account.id
+      token.role = account.role
+      token.name = account.name
+      token.email = account.email
+      token.picture = account.image
+      token.authVersion = 2
       return token
     },
     async session({ session, token }: any) {

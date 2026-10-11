@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:auth": "node --experimental-vm-modules --test tests/session-security.test.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

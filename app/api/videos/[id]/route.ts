@@ -12,7 +12,7 @@ export async function GET(
     const session = await auth()
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Oturum açmanız gerekiyor' }, { status: 401 })
     }
 
     const { id } = await params
@@ -32,12 +32,12 @@ export async function GET(
     })
 
     if (!video) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Video bulunamadı' }, { status: 404 })
     }
 
     // Erişim kontrolü
     if (video.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: 'Bu videoya erişim yetkiniz yok' }, { status: 403 })
     }
 
     return NextResponse.json({ video })
@@ -58,13 +58,13 @@ export async function PATCH(
     const session = await auth()
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Oturum açmanız gerekiyor' }, { status: 401 })
     }
 
     const parsed = videoPatchSchema.safeParse(await req.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid payload', details: parsed.error.flatten() },
+        { error: 'Gönderilen bilgiler geçersiz', details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -79,12 +79,12 @@ export async function PATCH(
     })
 
     if (!existingVideo) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Video bulunamadı' }, { status: 404 })
     }
 
     // Erişim kontrolü
     if (existingVideo.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: 'Bu videoya erişim yetkiniz yok' }, { status: 403 })
     }
 
     const updateData: any = {
@@ -151,7 +151,7 @@ export async function DELETE(
     const session = await auth()
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Oturum açmanız gerekiyor' }, { status: 401 })
     }
 
     const { id } = await params
@@ -162,12 +162,12 @@ export async function DELETE(
     })
 
     if (!existingVideo) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Video bulunamadı' }, { status: 404 })
     }
 
     // Erişim kontrolü
     if (existingVideo.userId !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: 'Bu videoya erişim yetkiniz yok' }, { status: 403 })
     }
 
     // Videoyu sil (cascade delete ile ilişkiler de silinir)
