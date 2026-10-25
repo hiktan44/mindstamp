@@ -5,6 +5,7 @@ import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './db'
 import bcrypt from 'bcryptjs'
+import { onSignInEvent } from './login-events'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -62,6 +63,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: '/giris',
     error: '/giris',
+  },
+  events: {
+    // Basarili giris (parola veya OAuth) sonrasi login_events'e bir satir; hata girisi engellemez.
+    signIn: onSignInEvent,
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {

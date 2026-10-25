@@ -35,8 +35,24 @@ model User {
   comments      Comment[]
   leads         Lead[]
   viewerSessions ViewerSession[]
+  loginEvents    LoginEvent[]
 
   @@index([email])
+}
+
+// Dogrulanmis giris olay gunlugu (Abone Takip paneli gunluk "giris yapan hesap" sayaci).
+// Kisisel veri YOK: e-posta/IP/user-agent/token tutulmaz.
+model LoginEvent {
+  id     String   @id @default(uuid())
+  userId String   @map("user_id")
+  method String   // password | google | github
+  at     DateTime @default(now()) @db.Timestamptz(3)
+
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([at])
+  @@index([userId])
+  @@map("login_events")
 }
 
 model Account {
