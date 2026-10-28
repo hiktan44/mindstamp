@@ -5,7 +5,7 @@ import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './db'
 import bcrypt from 'bcryptjs'
-import { onSignInEvent } from './login-events'
+import { githubVerifiedProfile } from './github-profile'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -18,6 +18,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GitHubProvider({
       clientId: process.env.GITHUB_ID || '',
       clientSecret: process.env.GITHUB_SECRET || '',
+      userinfo: { request: githubVerifiedProfile },
     }),
     CredentialsProvider({
       name: 'credentials',
@@ -64,20 +65,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/giris',
     error: '/giris',
   },
-  events: {
-    // Basarili giris (parola veya OAuth) sonrasi login_events'e bir satir; hata girisi engellemez.
-    signIn: onSignInEvent,
-  },
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async signIn({ account, profile }) {
+      // Canonical account linking stays with PrismaAdapter. A Google email is
+      // accepted only after the provider explicitly verifies its ownership.
+      if (account?.provider === 'google') return profile?.email_verified === true
+      return true
+    },
+    async jwt({ token, user, trigger }) {
       if (user) {
+        if (typeof user.id !== 'string' || !user.id) throw new Error('SESSION_ID_UNVERIFIED')
         token.id = user.id
         token.role = (user as any).role
       }
 
-      // Session update
-      if (trigger === 'update' && session) {
-        token = { ...token, ...session }
+      // The browser may request a refresh, but cannot supply identity/role
+      // claims. Read permitted profile fields from the already-issued account.
+      if (trigger === 'update') {
+        if (typeof token.id !== 'string' || !token.id) throw new Error('SESSION_ID_UNVERIFIED')
+        const actor = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { id: true, name: true, email: true, image: true, role: true },
+        })
+        if (!actor) throw new Error('SESSION_ACTOR_UNAVAILABLE')
+        token.name = actor.name
+        token.email = actor.email
+        token.picture = actor.image
+        token.role = actor.role
       }
 
       return token

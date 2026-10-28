@@ -508,3 +508,28 @@ enum InteractionType {
   RESET_INTERACTIONS
   RESET_VIEWER_STATE
 }
+
+/// Response-boundary journal: no user/business relation and no cleanup policy.
+model AboneLoginEvent {
+  eventId  String   @id @map("event_id")
+  actorId  String   @map("actor_id")
+  at       DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  excluded Boolean
+
+  @@index([at], map: "abone_login_events_at_idx")
+  @@map("abone_login_events")
+}
+
+model AboneLoginCoverage {
+  id                 Int      @id
+  installedAt        DateTime @default(dbgenerated("clock_timestamp()")) @map("installed_at") @db.Timestamptz(6)
+  authSourceSha256    String   @map("auth_source_sha256")
+  baselineRevision   String   @map("baseline_revision")
+  guardMd5           String   @map("guard_md5")
+  writeTriggerMd5    String   @map("write_trigger_md5")
+  truncateTriggerMd5 String   @map("truncate_trigger_md5")
+  evidenceKind       String   @default("authjs-session-response-issued") @map("evidence_kind")
+  auditWindowDays    Int      @default(32) @map("audit_window_days")
+
+  @@map("abone_login_coverage")
+}

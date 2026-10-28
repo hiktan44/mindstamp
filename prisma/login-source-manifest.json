@@ -1,0 +1,19 @@
+{
+  "contractVersion": 1,
+  "metric": "authjs-session-response-issued",
+  "baselineRevision": "c764346cee2bbd33d121617ff7ab86e775cbea68",
+  "authSourceSha256": "d9334454a333c418fb9ac5eb3e4996628ec7b3dfcdb5f848cfb45cebfc7cd7d1",
+  "files": {
+    "lib/auth.ts": "078472e1a805be5f62edfbf893a50d4a15e1da36104ed99a44e9a8d5cff9c5d9",
+    "lib/login-journal-response.ts": "7b1e1fc22f8940dcc9d09d3c8dacb95bcc7186deffc7b54232281458acbcdb19",
+    "app/api/auth/[...nextauth]/route.ts": "c512c7eb4bb617ce7cfb93cefdde2801e803ca3c482d5eb5a47c79fd551f4ce8",
+    "lib/github-profile.ts": "42d224c41c49b004b6814a4a6f4336741134b1e1ad729866b76c93fb1593a5ae"
+  },
+  "paths": [
+    "credentials",
+    "google",
+    "github"
+  ],
+  "journal": "public.abone_login_events",
+  "coverage": "Requires runtime/source/DB proof, single writer, and post-release epoch"
+}
