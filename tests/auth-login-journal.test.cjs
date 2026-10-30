@@ -69,6 +69,8 @@ test("new Auth.js sessions are released only after canonical durable journal com
   let rows = new Map();
   let fail = false;
   let queries = [];
+  let oauthAccountLinked = true;
+  let accountLinks = [];
   const db = {
     user: { findUnique: async (query) => { queries.push(query); return actor; } },
     $transaction: async (fn, options) => {
@@ -100,7 +102,7 @@ test("new Auth.js sessions are released only after canonical durable journal com
     "bcryptjs": { compare: async (password) => password === "fixture-password", hash: async () => "unused-fixture" },
     "./db": { prisma: db },
     "./github-profile": { githubVerifiedProfile },
-    "@auth/prisma-adapter": { PrismaAdapter: () => ({ getUserByAccount: async () => actor, getUser: async () => actor, getUserByEmail: async () => actor, linkAccount: async (value) => value, updateUser: async (value) => ({ ...actor, ...value }) }) },
+    "@auth/prisma-adapter": { PrismaAdapter: () => ({ getUserByAccount: async () => oauthAccountLinked ? actor : null, getUser: async () => actor, getUserByEmail: async () => actor, linkAccount: async (value) => { accountLinks.push(value); oauthAccountLinked = true; return value; }, updateUser: async (value) => ({ ...actor, ...value }) }) },
     "@randevu/validation": { loginSchema: { safeParse: (data) => ({ success: true, data }) } },
     "@/lib/rate-limit": { rateLimit: () => true, clientIpFromHeaders: () => "fixture" },
   });
@@ -133,11 +135,16 @@ test("new Auth.js sessions are released only after canonical durable journal com
       assert.equal(rows.size, 0);
       assert.equal(config.events, undefined, "production must not keep a second fail-open writer");
     });
-    await t.test("Google email ownership requires the literal verified boolean", async () => {
-      for (const profile of [undefined, {}, {email_verified:false}, {email_verified:'true'}, {email_verified:1}]) {
+    await t.test("Google account linking requires a verified address owned by Google", async () => {
+      const gmail = {email:'customer@gmail.com',email_verified:true};
+      for (const profile of [undefined, {}, {...gmail,email_verified:false}, {...gmail,email_verified:'true'}, {...gmail,email_verified:1}, {...gmail,email:undefined}, {...gmail,email:'attacker@evil@gmail.com'}, {...gmail,email:'customer@gmail.com.attacker.invalid'}, {...gmail,email:canonical.email}, {...gmail,email:canonical.email,hd:''}, {...gmail,email:canonical.email,hd:' '}, {...gmail,email:canonical.email,hd:true}]) {
         assert.equal(await config.callbacks.signIn({account:{provider:'google'},profile}),false);
       }
-      assert.equal(await config.callbacks.signIn({account:{provider:'google'},profile:{email_verified:true}}),true);
+      assert.equal(await config.callbacks.signIn({account:{provider:'google'},profile:gmail}),true);
+      assert.equal(await config.callbacks.signIn({account:{provider:'google'},profile:{...gmail,email:'Customer@GMAIL.COM'}}),true);
+      assert.equal(await config.callbacks.signIn({account:{provider:'google'},profile:{email:canonical.email,email_verified:true,hd:'example.invalid'}}),true);
+      assert.equal(config.providers.find((p)=>p.id==='google').options.allowDangerousEmailAccountLinking,true);
+      assert.notEqual(config.providers.find((p)=>p.id==='github').options.allowDangerousEmailAccountLinking,true);
     });
     await t.test("actual CSRF + credentials callback uses the response wrapper and persisted canonical identity", async () => {
       rows = new Map(); queries = [];
@@ -193,15 +200,16 @@ test("new Auth.js sessions are released only after canonical durable journal com
       assert.equal(await journal(request, response, db), response);
       assert.equal(rows.size, 1); assert.equal([...rows.values()][0].actor_id, canonical.id);
     });
-    await t.test("actual Google OAuth callback with isolated OIDC exchange journals the linked database account", async () => {
-      rows = new Map(); actor = { ...canonical };
+    await t.test("actual Google OAuth callback links an existing password account and journals its canonical identity", async () => {
+      rows = new Map(); actor = { ...canonical }; oauthAccountLinked = false; accountLinks = [];
       const coreRequire = createRequire(nextRequire.resolve("@auth/core"));
       const { SignJWT, generateKeyPair, exportJWK } = await import(pathToFileURL(coreRequire.resolve("jose")).href);
       const { privateKey, publicKey } = await generateKeyPair("RS256");
       const issuer = "https://oidc.fixture.invalid";
-      let invalidAudience = false; let verifiedEmail = true;
+      let invalidAudience = false; let verifiedEmail = true; let hostedDomain = 'example.invalid';
       let exchanges = 0;
       const provider = Google({
+        ...config.providers.find((p)=>p.id==='google').options,
         clientId: "fixture-client", clientSecret: "fixture-only-secret", issuer,
         [customFetch]: async (input, init) => {
           const url = new URL(input instanceof Request ? input.url : String(input));
@@ -216,7 +224,7 @@ test("new Auth.js sessions are released only after canonical durable journal com
           if (url.pathname === "/token") {
             exchanges += 1;
             assert.ok(init.body.get("code_verifier"), "actual Auth.js PKCE verifier is present");
-            const id_token = await new SignJWT({ sub: "external-google-subject", email: canonical.email, email_verified: verifiedEmail, name: "Fixture" })
+            const id_token = await new SignJWT({ sub: "external-google-subject", email: canonical.email, email_verified: verifiedEmail, hd: hostedDomain, name: "Fixture" })
               .setProtectedHeader({ alg: "RS256", kid: "fixture-key" }).setIssuer(issuer).setAudience(invalidAudience ? "wrong-audience" : "fixture-client")
               .setIssuedAt().setExpirationTime("5m").sign(privateKey);
             return Response.json({ access_token: "fixture-only-access", token_type: "Bearer", expires_in: 300, id_token });
@@ -250,11 +258,20 @@ test("new Auth.js sessions are released only after canonical durable journal com
       assert.equal(pair.response.status, 302); assert.equal(outgoingSession(pair.response).length, 1);
       assert.equal(await journal(pair.request, pair.response, db), pair.response);
       assert.equal(rows.size, 1); assert.equal([...rows.values()][0].actor_id, canonical.id);
+      assert.equal(accountLinks.length,1); assert.equal(accountLinks[0].userId,canonical.id);
+      assert.equal(accountLinks[0].provider,'google'); assert.equal(accountLinks[0].providerAccountId,'external-google-subject');
+      const returning = await oauthCallback();
+      assert.equal(outgoingSession(returning.response).length,1); assert.equal(accountLinks.length,1,'returning Google login must reuse the link');
       verifiedEmail = false; rows = new Map();
       const denied = await oauthCallback();
       assert.equal(outgoingSession(denied.response).length, 0);
       assert.equal(await journal(denied.request, denied.response, db), denied.response);
-      assert.equal(rows.size, 0); assert.equal(exchanges, 2);
+      assert.equal(rows.size, 0); assert.equal(exchanges, 3);
+      verifiedEmail = true; hostedDomain = undefined; oauthAccountLinked = false; accountLinks = [];
+      const thirdParty = await oauthCallback();
+      assert.equal(outgoingSession(thirdParty.response).length,0); assert.equal(accountLinks.length,0);
+      assert.equal(await journal(thirdParty.request,thirdParty.response,db),thirdParty.response);assert.equal(rows.size,0);
+      hostedDomain = 'example.invalid'; oauthAccountLinked = true;
       verifiedEmail = true; invalidAudience = true;
       const invalid = await oauthCallback();assert.equal(outgoingSession(invalid.response).length,0);
       assert.equal(await journal(invalid.request,invalid.response,db),invalid.response);assert.equal(rows.size,0);

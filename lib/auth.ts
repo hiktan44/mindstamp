@@ -14,6 +14,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      // The signIn callback below requires Google to own the verified address
+      // before PrismaAdapter can link it to an existing password account.
+      allowDangerousEmailAccountLinking: true,
     }),
     GitHubProvider({
       clientId: process.env.GITHUB_ID || '',
@@ -67,9 +70,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ account, profile }) {
-      // Canonical account linking stays with PrismaAdapter. A Google email is
-      // accepted only after the provider explicitly verifies its ownership.
-      if (account?.provider === 'google') return profile?.email_verified === true
+      if (account?.provider === 'google') {
+        const email = profile?.email
+        if (profile?.email_verified !== true || typeof email !== 'string' ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false
+
+        // Auth.js verifies Google's signed OIDC claims before this callback.
+        // Google owns Gmail addresses and Workspace addresses with an hd claim.
+        // A third-party email marked verified can have changed owners since
+        // Google first checked it, so it must not auto-link an existing account.
+        return email.toLowerCase().endsWith('@gmail.com') ||
+          (typeof profile.hd === 'string' && profile.hd.trim().length > 0)
+      }
       return true
     },
     async jwt({ token, user, trigger }) {
