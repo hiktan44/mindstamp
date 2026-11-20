@@ -82,6 +82,20 @@ async function detectCountry(): Promise<string | null> {
   return null
 }
 
+
+// Browser language fallback when the IP lookup is unavailable: any non-Turkish
+// browser gets English so a foreign visitor never lands on Turkish by default.
+function browserLang(): Lang {
+  try {
+    const langs = navigator.languages?.length ? navigator.languages : [navigator.language]
+    const primary = (langs.find(Boolean) || '').toLowerCase()
+    if (primary) return primary.startsWith('tr') ? 'tr' : 'en'
+  } catch {
+    /* ignore */
+  }
+  return 'tr'
+}
+
 /**
  * Set cookie with language preference
  */
@@ -137,13 +151,11 @@ export function useLang() {
         setIsHydrated(true)
         return
       }
-      const detectedLang: Lang = country === 'TR' ? 'tr' : country ? 'en' : 'tr'
+      const detectedLang: Lang = country === 'TR' ? 'tr' : country ? 'en' : browserLang()
       setLangState(detectedLang)
       setIsHydrated(true)
     }).catch(() => {
-      const browserLang = navigator.language.toLowerCase()
-      const fallbackLang: Lang = browserLang.startsWith('tr') ? 'tr' : 'tr'
-      setLangState(fallbackLang)
+      setLangState(browserLang())
       setIsHydrated(true)
     })
   }, [])
