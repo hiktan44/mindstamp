@@ -84,28 +84,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
+      // Eski sürümde istemci token.sub dahil bütün kimlik alanlarını değiştirebiliyordu.
+      // Yalnız yeni, sunucuda doğrulanmış girişler sürüm 2 oturumu başlatabilir.
       if (user) {
         if (typeof user.id !== 'string' || !user.id) throw new Error('SESSION_ID_UNVERIFIED')
-        token.id = user.id
-        token.role = (user as any).role
+      } else if (token.authVersion !== 2) {
+        return null
       }
 
-      // The browser may request a refresh, but cannot supply identity/role
-      // claims. Read permitted profile fields from the already-issued account.
-      if (trigger === 'update') {
-        if (typeof token.id !== 'string' || !token.id) throw new Error('SESSION_ID_UNVERIFIED')
-        const actor = await prisma.user.findUnique({
-          where: { id: token.id },
-          select: { id: true, name: true, email: true, image: true, role: true },
-        })
-        if (!actor) throw new Error('SESSION_ACTOR_UNAVAILABLE')
-        token.name = actor.name
-        token.email = actor.email
-        token.picture = actor.image
-        token.role = actor.role
-      }
+      const id = user ? user.id : token.sub
+      if (typeof id !== 'string' || !id) return null
+      const account = await prisma.user.findUnique({
+        where: { id },
+        select: { id: true, role: true, name: true, email: true, image: true },
+      })
+      if (!account) return null
 
+      // Güncelleme gövdesi kimlik/rol kaynağı değildir; profil de veritabanından okunur.
+      token.id = account.id
+      token.sub = account.id
+      token.role = account.role
+      token.name = account.name
+      token.email = account.email
+      token.picture = account.image
+      token.authVersion = 2
       return token
     },
     async session({ session, token }: any) {

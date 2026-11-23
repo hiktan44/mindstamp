@@ -110,7 +110,7 @@ test("new Auth.js sessions are released only after canonical durable journal com
   const coreConfig = () => ({ ...config, secret, basePath: "/api/auth", logger: { error() {}, warn() {}, debug() {} } });
   const encoded = (claims = {}, options = {}) => jwt.encode({
     secret, salt: COOKIE,
-    token: { id: canonical.id, role: canonical.role, businessId: canonical.businessId, ...claims }, ...options,
+    token: { id: canonical.id, sub: canonical.id, authVersion: 2, role: canonical.role, businessId: canonical.businessId, ...claims }, ...options,
   });
   async function credentials(password = "fixture-password", priorCookie, configPatch = {}) {
     const conf = { ...coreConfig(), ...configPatch };
@@ -315,11 +315,12 @@ test("new Auth.js sessions are released only after canonical durable journal com
     });
     await t.test("client session updates cannot replace the canonical identity, role or signed-token fields", async () => {
       actor={...canonical,image:null};queries=[];
-      const original={id:canonical.id,sub:canonical.id,role:'USER',jti:'fixture-jti',iat:123,exp:456};
+      const original={id:canonical.id,sub:canonical.id,authVersion:2,role:'USER',jti:'fixture-jti',iat:123,exp:456};
       const refreshed=await config.callbacks.jwt({token:{...original},trigger:'update',session:{id:'other-fixture',sub:'other-fixture',role:'SUPER_ADMIN',jti:'attacker',iat:999,exp:999999,name:'client-name',email:'client@example.invalid'}});
       assert.equal(refreshed.id,canonical.id);assert.equal(refreshed.sub,canonical.id);assert.equal(refreshed.role,'USER');assert.equal(refreshed.jti,original.jti);assert.equal(refreshed.iat,original.iat);assert.equal(refreshed.exp,original.exp);assert.equal(refreshed.name,canonical.name);assert.equal(refreshed.email,canonical.email);
       assert.deepEqual(queries.at(-1).where,{id:canonical.id});
-      actor=null;await assert.rejects(config.callbacks.jwt({token:{...original},trigger:'update',session:{id:'other-fixture'}}),/SESSION_ACTOR_UNAVAILABLE/);actor={...canonical};
+      assert.equal(await config.callbacks.jwt({token:{id:canonical.id,sub:canonical.id,role:'USER'},trigger:'update',session:{authVersion:2}}),null);
+      actor=null;assert.equal(await config.callbacks.jwt({token:{...original},trigger:'update',session:{id:'other-fixture'}}),null);actor={...canonical};
     });
     await t.test("tampered, expired and wrong-key sessions are withheld without customer details", async () => {
       rows = new Map();
@@ -389,6 +390,7 @@ test("new Auth.js sessions are released only after canonical durable journal com
       const request = new Request(`${BASE}/api/auth/session`, { headers: { cookie: `${COOKIE}=${token}` } });
       const response = await Auth(request, coreConfig());
       assert.equal(response.status, 200); assert.equal(outgoingSession(response).length, 1);
+      assert.equal((await response.clone().json()).user.id, canonical.id);
       assert.equal(await journal(request, response, db), response);
       const echoed = responseFor(token);
       assert.equal(await journal(requestFor("callback/credentials", `${COOKIE}=${token}`), echoed, db), echoed);
