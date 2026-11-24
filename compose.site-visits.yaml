@@ -1,0 +1,43 @@
+services:
+  site-sayaci:
+    build: ./site-sayaci
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    expose: ["3806"]
+    networks: [proxy]
+    volumes:
+      - private:/var/lib/site-sayaci
+      - aggregate:/var/lib/site-sayaci/out
+    environment:
+      SITE_ID: mindstamp
+      SITE_ORIGIN: https://interaktiff.com
+      SITE_VISITS_ENABLED: "${SITE_VISITS_ENABLED:-0}"
+    labels:
+      com.seymata.site-visits.app: mindstamp
+      com.seymata.site-visits.host: interaktiff.com
+      com.seymata.site-visits.schema: '1'
+      traefik.enable: 'true'
+      traefik.docker.network: "${SITE_VISITS_PROXY_NETWORK:?set the existing verified proxy network}"
+      traefik.http.routers.site-visits-mindstamp.rule: "Host(`interaktiff.com`) && (Path(`/.well-known/site-visits/client.mjs`) || Path(`/.well-known/site-visits/page`))"
+      traefik.http.routers.site-visits-mindstamp.entrypoints: https
+      traefik.http.routers.site-visits-mindstamp.tls: 'true'
+      traefik.http.routers.site-visits-mindstamp.service: site-visits-mindstamp
+      traefik.http.routers.site-visits-mindstamp.middlewares: site-visits-mindstamp-privacy
+      traefik.http.services.site-visits-mindstamp.loadbalancer.server.port: '3806'
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.Cookie: ''
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.Authorization: ''
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.Referer: ''
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.Forwarded: ''
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.X-Forwarded-For: ''
+      traefik.http.middlewares.site-visits-mindstamp-privacy.headers.customrequestheaders.X-Real-IP: ''
+networks:
+  proxy:
+    external: true
+    name: "${SITE_VISITS_PROXY_NETWORK:?set the existing verified proxy network}"
+volumes:
+  private:
+    name: site-visits-mindstamp-private
+  aggregate:
+    name: site-visits-mindstamp-out

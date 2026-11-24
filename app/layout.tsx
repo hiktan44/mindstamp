@@ -88,6 +88,7 @@ export default function RootLayout({
         </LangProvider>
       <LegalFooter />
       <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){window.addEventListener('load', function(){navigator.serviceWorker.register('/sw.js').catch(function(){});})}"}} />
+        <script defer src="/site-visit-preference.js" data-site-origin="https://interaktiff.com" data-context="server" />
       </body>
     </html>
   );
